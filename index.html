@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宏國地政|易丞地政 - 員工指揮艙 (Live)</title>
+    <title>宏國地政|易丞地政 - 員工權益指揮艙 (Live)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* 保留原本的美學樣式 */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; color: #1e293b; }
         .serif { font-family: 'Noto Serif TC', serif; }
@@ -23,6 +22,12 @@
         .status-rejected { background-color: #fee2e2; color: #991b1b; }
         .fade-in-up { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* 新增：薪資影響提示卡樣式 */
+        .impact-card { transition: all 0.3s ease; border-left: 4px solid; }
+        .impact-full { border-left-color: #22c55e; background-color: #f0fdf4; } /* 全薪 (綠) */
+        .impact-half { border-left-color: #f97316; background-color: #fff7ed; } /* 半薪 (橘) */
+        .impact-none { border-left-color: #ef4444; background-color: #fef2f2; } /* 無薪 (紅) */
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -90,11 +95,34 @@
                         <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-file-signature text-brand-gold"></i> 提交請假申請</h3>
                         <form onsubmit="handleLeaveSubmit(event)" class="space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div><label class="block text-xs font-bold text-slate-500 mb-1">假別</label><select id="leaveType" class="w-full p-2.5 input-modern"><option value="特休">特休</option><option value="病假">病假</option><option value="事假">事假</option><option value="補休">補休</option><option value="婚假">婚假</option></select></div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 mb-1">假別 (自動顯示薪資影響)</label>
+                                    <select id="leaveType" class="w-full p-2.5 input-modern" onchange="updateImpactInfo()">
+                                        <option value="特休">特休 (Annual Leave)</option>
+                                        <option value="病假">病假 (Sick Leave)</option>
+                                        <option value="事假">事假 (Personal Leave)</option>
+                                        <option value="補休">補休 (Compensatory)</option>
+                                        <option value="婚假">婚假 (Marriage)</option>
+                                        <option value="喪假">喪假 (Bereavement)</option>
+                                        <option value="生理假">生理假 (Menstrual)</option>
+                                    </select>
+                                </div>
                                 <div><label class="block text-xs font-bold text-slate-500 mb-1">日期</label><input type="date" id="leaveDate" class="w-full p-2.5 input-modern"></div>
-                                <div class="md:col-span-2"><label class="block text-xs font-bold text-slate-500 mb-1">天數</label><input type="number" id="leaveDays" min="0.5" step="0.5" value="1" class="w-full p-2.5 input-modern"></div>
+                                <div class="md:col-span-2"><label class="block text-xs font-bold text-slate-500 mb-1">天數</label><input type="number" id="leaveDays" min="0.5" step="0.5" value="1" class="w-full p-2.5 input-modern" oninput="updateImpactInfo()"></div>
                                 <div class="md:col-span-2"><label class="block text-xs font-bold text-slate-500 mb-1">事由</label><input type="text" id="leaveReason" class="w-full p-2.5 input-modern" placeholder="例：處理私人事務"></div>
                             </div>
+
+                            <div id="impactCard" class="impact-card impact-full p-4 rounded-lg flex justify-between items-center">
+                                <div>
+                                    <div class="font-bold text-sm text-slate-700" id="impactTitle">全薪 (工資照給)</div>
+                                    <div class="text-xs text-slate-500" id="impactDesc">此假別依勞基法規定不扣發薪資，僅扣除特休天數。</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xs text-slate-400">預估扣薪</div>
+                                    <div class="font-bold text-lg text-slate-800">$<span id="impactAmount">0</span></div>
+                                </div>
+                            </div>
+
                             <button type="submit" class="w-full bg-[#06c755] hover:bg-[#05b34c] text-white font-bold py-3 rounded-lg shadow-lg transition active:scale-95 flex justify-center items-center gap-2"><i class="fa-brands fa-line"></i> 送出申請並通知</button>
                         </form>
                     </div>
@@ -107,13 +135,27 @@
 
                 <div class="space-y-6 lg:col-span-1">
                     <div class="glass-panel p-6 bg-slate-900 text-white fade-in-up">
-                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-calculator text-brand-gold"></i> 加班費試算</h3></div>
+                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-calculator text-brand-gold"></i> 月薪與加班設定</h3></div>
                         <div class="space-y-5">
-                            <div class="bg-slate-800 p-3 rounded-lg border border-slate-700"><label class="block text-xs text-slate-400 mb-1">月薪</label><input type="number" id="monthlySalary" value="30000" class="bg-transparent text-white font-bold text-lg w-full outline-none" oninput="calculateOvertime()"></div>
+                            <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                                <label class="block text-xs text-slate-400 mb-1">您的月薪 (用於計算扣薪/加班費)</label>
+                                <input type="number" id="monthlySalary" value="30000" class="bg-transparent text-white font-bold text-lg w-full outline-none" oninput="calculateOvertime(); updateImpactInfo();">
+                                <div class="text-right text-[10px] text-slate-400 mt-1">時薪約 $<span id="displayHourlyRate">125</span> / 日薪約 $<span id="displayDailyRate">1000</span></div>
+                            </div>
                             <div><div class="flex justify-between text-xs mb-1 text-slate-400"><span>平日加班 (前2hr)</span><span class="text-white font-bold"><span id="calcHours1Val">0</span> hr</span></div><input type="range" id="calcHours1" min="0" max="10" step="0.5" value="0" oninput="calculateOvertime()"></div>
                             <div><div class="flex justify-between text-xs mb-1 text-slate-400"><span>平日加班 (第3hr起)</span><span class="text-white font-bold"><span id="calcHours2Val">0</span> hr</span></div><input type="range" id="calcHours2" min="0" max="10" step="0.5" value="0" oninput="calculateOvertime()"></div>
                         </div>
                         <div class="mt-6 pt-4 border-t border-slate-700 text-center"><p class="text-xs text-slate-400 uppercase tracking-widest">預估加班費</p><div class="text-3xl font-bold text-brand-gold mt-1">$<span id="calcTotal">0</span></div></div>
+                    </div>
+
+                    <div class="glass-panel p-5 text-sm space-y-3 fade-in-up">
+                        <h4 class="font-bold text-slate-700 border-b pb-2">假別權益速查 (勞基法)</h4>
+                        <div class="flex justify-between items-center"><span class="text-slate-500"><i class="fa-solid fa-plane-departure text-blue-400 w-5"></i>特休</span><span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-bold">全薪 (工資照給)</span></div>
+                        <div class="flex justify-between items-center"><span class="text-slate-500"><i class="fa-solid fa-ring text-purple-400 w-5"></i>婚假</span><span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-bold">全薪 (8天)</span></div>
+                        <div class="flex justify-between items-center"><span class="text-slate-500"><i class="fa-solid fa-ribbon text-slate-400 w-5"></i>喪假</span><span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-bold">全薪 (依親等)</span></div>
+                        <div class="flex justify-between items-center"><span class="text-slate-500"><i class="fa-solid fa-notes-medical text-orange-400 w-5"></i>病假</span><span class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-bold">半薪 (30天內)</span></div>
+                        <div class="flex justify-between items-center"><span class="text-slate-500"><i class="fa-solid fa-person-dress text-pink-400 w-5"></i>生理假</span><span class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-bold">半薪 (1日/月)</span></div>
+                        <div class="flex justify-between items-center"><span class="text-slate-500"><i class="fa-solid fa-briefcase text-red-400 w-5"></i>事假</span><span class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded font-bold">無薪 (扣全額)</span></div>
                     </div>
                 </div>
             </div>
@@ -147,12 +189,11 @@
     </main>
 
     <script type="module">
-        // 1. 引入 Firebase SDK (使用網頁適用的 CDN 連結)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
 
-        // 2. 貼上您的設定
+        // Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyCcSH0HQutt6rYcFWjCKOpTSWkBDeinyvw",
             authDomain: "homego-system.firebaseapp.com",
@@ -164,35 +205,30 @@
             measurementId: "G-E7J5PVQJ4L"
         };
 
-        // 3. 初始化 Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const analytics = getAnalytics(app); // 啟動分析
+        const analytics = getAnalytics(app);
         const ADMIN_PASSWORD = "8888";
 
-        // 全域狀態
         let employees = {};
         let requests = {};
         let bulletin = { title: "歡迎", content: "資料讀取中...", date: "" };
         let currentUserId = null;
 
-        // --- 監聽資料 (Real-time Magic!) ---
+        // --- Firebase Listener ---
         onValue(ref(db), (snapshot) => {
             const data = snapshot.val() || {};
             employees = data.employees || {};
             requests = data.requests || {};
             bulletin = data.bulletin || { title: "尚無公告", content: "", date: "" };
             
-            console.log("🔥 Firebase 資料已同步", data);
-            
-            // 更新 UI
+            console.log("🔥 Firebase Data Synced");
             updateEmpSelect();
             renderBulletin();
             if (currentUserId) loadEmployeeDashboard();
             renderAdminTable();
             renderApprovalQueue();
             
-            // 首次載入完成，解鎖下拉選單
             const select = document.getElementById('empSelect');
             select.disabled = false;
             if(select.options[0].text === "-- 資料載入中 --") {
@@ -201,12 +237,11 @@
             }
         });
 
-        // 將 function 綁定到 window 以便 HTML onclick 呼叫
+        // --- Functions ---
         window.switchView = (view) => {
             document.getElementById('employeeView').classList.add('hidden-section');
             document.getElementById('adminView').classList.add('hidden-section');
             document.getElementById('loginSection').classList.add('hidden-section');
-
             const btnEmp = document.getElementById('btnEmp');
             const btnAdm = document.getElementById('btnAdm');
 
@@ -250,7 +285,55 @@
 
                 document.getElementById('loginSection').classList.add('hidden-section');
                 document.getElementById('employeeView').classList.remove('hidden-section');
+                
+                // 初始化影響提示
+                window.updateImpactInfo();
+                window.calculateOvertime();
             }
+        };
+
+        // --- 新增：薪資影響計算邏輯 ---
+        window.updateImpactInfo = () => {
+            const type = document.getElementById('leaveType').value;
+            const days = parseFloat(document.getElementById('leaveDays').value) || 0;
+            const salary = parseInt(document.getElementById('monthlySalary').value) || 30000;
+            const dailyRate = Math.round(salary / 30);
+            
+            const card = document.getElementById('impactCard');
+            const title = document.getElementById('impactTitle');
+            const desc = document.getElementById('impactDesc');
+            const amount = document.getElementById('impactAmount');
+
+            // 重置樣式
+            card.classList.remove('impact-full', 'impact-half', 'impact-none');
+
+            let deduction = 0;
+
+            switch(type) {
+                case '特休':
+                case '婚假':
+                case '喪假':
+                case '補休':
+                    card.classList.add('impact-full');
+                    title.innerText = "全薪 (工資照給)";
+                    desc.innerText = "依勞基法規定，此假別期間工資照給，不扣發薪資。";
+                    deduction = 0;
+                    break;
+                case '病假':
+                case '生理假':
+                    card.classList.add('impact-half');
+                    title.innerText = "半薪 (發給一半工資)";
+                    desc.innerText = "依勞基法規定，普通傷病/生理假期間，工資折半發給。";
+                    deduction = Math.round(dailyRate * days * 0.5);
+                    break;
+                case '事假':
+                    card.classList.add('impact-none');
+                    title.innerText = "無薪 (不給工資)";
+                    desc.innerText = "依勞基法規定，事假期間不給付工資。";
+                    deduction = Math.round(dailyRate * days);
+                    break;
+            }
+            amount.innerText = deduction.toLocaleString();
         };
 
         window.handleLeaveSubmit = (e) => {
@@ -273,19 +356,17 @@
             });
 
             alert("✅ 申請已送出！待管理員審核。");
-            const msg = `【請假申請】\n👤 ${emp.name}\n📅 ${date} (${days}天)\n📝 ${reason}`;
+            const msg = `【請假申請】\n👤 ${emp.name}\n📅 ${date} (${days}天)\n🏷️ ${type}\n📝 ${reason}`;
             window.open(`https://line.me/R/msg/text/?${encodeURIComponent(msg)}`);
             document.getElementById('leaveReason').value = '';
         };
 
-        // Admin Functions
         window.processRequest = (reqId, action) => {
             const req = requests[reqId];
             if (!req) return;
 
             if (action === 'approve') {
                 if(!confirm(`確認批准 ${req.empName} 的請假？`)) return;
-                // 扣假 (如果需要)
                 if (req.type === '特休') {
                     const empRef = ref(db, `employees/${req.empId}/usedLeave`);
                     const currentUsed = employees[req.empId].usedLeave || 0;
@@ -303,12 +384,8 @@
             const gender = document.getElementById('newAdminGender').value;
             const date = document.getElementById('newAdminDate').value;
             if(!name || !date) return alert("資料不完整");
-
             const newEmpRef = push(ref(db, 'employees'));
-            set(newEmpRef, {
-                id: newEmpRef.key,
-                name, gender, joinDate: date, usedLeave: 0
-            });
+            set(newEmpRef, { id: newEmpRef.key, name, gender, joinDate: date, usedLeave: 0 });
             document.getElementById('newAdminName').value = '';
         };
 
@@ -325,7 +402,6 @@
             alert("公告已更新");
         };
 
-        // 輔助函式
         function calculateLeave(joinDate) {
             const now = new Date();
             const start = new Date(joinDate);
@@ -342,7 +418,6 @@
             return { years: years.toFixed(1), days: days };
         }
 
-        // UI 渲染函式
         function updateEmpSelect() {
             const select = document.getElementById('empSelect');
             const oldValue = select.value;
@@ -379,9 +454,7 @@
             const noMsg = document.getElementById('noPendingMsg');
             const badge = document.getElementById('pendingCountBadge');
             tbody.innerHTML = '';
-            
             const pendingReqs = Object.values(requests).filter(r => r.status === 'pending').sort((a,b) => a.timestamp - b.timestamp);
-            
             if (pendingReqs.length > 0) {
                 noMsg.classList.add('hidden');
                 badge.innerText = pendingReqs.length;
@@ -413,6 +486,10 @@
         window.calculateOvertime = () => {
             const salary = parseInt(document.getElementById('monthlySalary').value) || 0;
             const hourlyRate = Math.round(salary / 240);
+            const dailyRate = Math.round(salary / 30);
+            document.getElementById('displayHourlyRate').innerText = hourlyRate;
+            document.getElementById('displayDailyRate').innerText = dailyRate;
+            
             const h1 = parseFloat(document.getElementById('calcHours1').value);
             const h2 = parseFloat(document.getElementById('calcHours2').value);
             document.getElementById('calcHours1Val').innerText = h1;
