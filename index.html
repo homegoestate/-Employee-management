@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宏國地政|易丞地政 - 智慧指揮艙 (Nexus V5.6)</title>
+    <title>宏國地政|易丞地政 - 智慧指揮艙 (Nexus V5.7)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -38,8 +38,8 @@
         .impact-none { border-left-color: #ef4444; background-color: #fef2f2; } 
 
         .btn-punch:active { transform: scale(0.95); }
-        .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: bold; }
-        .tab-inactive { color: #64748b; }
+        .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: bold; background-color: #f0f9ff; }
+        .tab-inactive { color: #64748b; background-color: transparent; }
         .device-badge { font-family: monospace; font-size: 0.7rem; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; }
 
         /* Modal Overlay */
@@ -61,7 +61,7 @@
                 <div class="w-10 h-10 bg-white text-blue-900 rounded-lg flex items-center justify-center font-bold text-lg serif shadow-lg">宏</div>
                 <div>
                     <h1 class="text-base md:text-lg font-bold tracking-wider serif">宏國地政 | 易丞地政</h1>
-                    <p class="text-[10px] text-blue-200 tracking-widest uppercase">Nexus V5.6 (Layout Fix)</p>
+                    <p class="text-[10px] text-blue-200 tracking-widest uppercase">Nexus V5.7 (Work Log)</p>
                 </div>
             </div>
             <div class="flex bg-blue-900/50 rounded-full p-1">
@@ -146,8 +146,9 @@
 
                     <div class="glass-panel p-6 border-t-4 border-brand-gold fade-in-up">
                         <div class="flex border-b border-gray-200 mb-4">
-                            <button class="w-1/2 py-2 text-center text-sm tab-active" id="tab-leave" onclick="switchAppTab('leave')">請假申請</button>
-                            <button class="w-1/2 py-2 text-center text-sm tab-inactive" id="tab-car" onclick="switchAppTab('car')">公務車預約</button>
+                            <button class="flex-1 py-2 text-center text-sm tab-active transition-colors" id="tab-leave" onclick="switchAppTab('leave')">請假</button>
+                            <button class="flex-1 py-2 text-center text-sm tab-inactive transition-colors" id="tab-car" onclick="switchAppTab('car')">公務車</button>
+                            <button class="flex-1 py-2 text-center text-sm tab-inactive transition-colors font-bold text-purple-600" id="tab-log" onclick="switchAppTab('log')">工作日誌</button>
                         </div>
 
                         <form id="form-leave" onsubmit="handleLeaveSubmit(event)" class="space-y-4">
@@ -190,6 +191,22 @@
                                 <i class="fa-solid fa-circle-info mr-1"></i> 公務車需經管理員審核。
                             </div>
                             <button type="submit" class="w-full bg-[#06c755] hover:bg-[#05b34c] text-white font-bold py-3 rounded-lg shadow-lg transition flex justify-center items-center gap-2"><i class="fa-brands fa-line"></i> 送出並通知 LINE 群組</button>
+                        </form>
+
+                        <form id="form-log" onsubmit="handleLogSubmit(event)" class="space-y-4 hidden-section">
+                            <div class="flex justify-between items-end mb-2">
+                                <div class="w-2/3">
+                                    <label class="block text-xs font-bold text-slate-500 mb-1">匯報日期</label>
+                                    <input type="date" id="logDate" class="w-full p-2 input-modern">
+                                </div>
+                                <button type="button" onclick="addNewTaskType()" class="text-xs bg-slate-800 text-white px-3 py-2 rounded hover:bg-slate-700 shadow"><i class="fa-solid fa-plus mr-1"></i> 新增項目</button>
+                            </div>
+
+                            <div class="space-y-2" id="logEntriesContainer">
+                                <div class="text-center text-sm text-slate-400 py-4"><i class="fa-solid fa-spinner fa-spin"></i> 載入選項中...</div>
+                            </div>
+
+                            <button type="submit" class="w-full bg-[#06c755] hover:bg-[#05b34c] text-white font-bold py-3 rounded-lg shadow-lg transition flex justify-center items-center gap-2 mt-4"><i class="fa-brands fa-line"></i> 產生匯報並通知 LINE</button>
                         </form>
                     </div>
 
@@ -406,7 +423,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+        import { getDatabase, ref, set, push, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCcSH0HQutt6rYcFWjCKOpTSWkBDeinyvw",
@@ -425,10 +442,14 @@
         let employees = {};
         let requests = {};
         let attendance = {};
+        let taskOptions = []; // Store global task options
         let bulletin = { title: "歡迎", content: "資料讀取中...", date: "" };
         let currentUserId = null;
         let currentDeduction = 0;
         let currentModalEmpId = null;
+
+        // Default tasks if none in DB
+        const DEFAULT_TASKS = ["地政過戶", "貸款", "結案資料整理", "過水電", "用印", "對保", "塗銷"];
 
         // --- Device Fingerprint ---
         let myDeviceId = localStorage.getItem('hge_security_did');
@@ -471,10 +492,20 @@
         };
 
         window.switchAppTab = (tab) => {
-            document.querySelectorAll('[id^="tab-"]').forEach(el => el.className = 'w-1/2 py-2 text-center text-sm tab-inactive');
-            document.getElementById(`tab-${tab}`).className = 'w-1/2 py-2 text-center text-sm tab-active';
+            // Reset all tabs
+            document.getElementById('tab-leave').className = 'flex-1 py-2 text-center text-sm tab-inactive transition-colors';
+            document.getElementById('tab-car').className = 'flex-1 py-2 text-center text-sm tab-inactive transition-colors';
+            document.getElementById('tab-log').className = 'flex-1 py-2 text-center text-sm tab-inactive transition-colors';
+            
+            // Activate selected
+            const activeClass = 'flex-1 py-2 text-center text-sm tab-active transition-colors';
+            if(tab === 'log') document.getElementById('tab-log').className = activeClass + ' font-bold text-purple-600';
+            else document.getElementById('tab-' + tab).className = activeClass;
+
+            // Hide/Show forms
             document.getElementById('form-leave').classList.add('hidden-section');
             document.getElementById('form-car').classList.add('hidden-section');
+            document.getElementById('form-log').classList.add('hidden-section');
             document.getElementById(`form-${tab}`).classList.remove('hidden-section');
         };
 
@@ -485,6 +516,17 @@
             requests = data.requests || {};
             attendance = data.attendance || {};
             bulletin = data.bulletin || { title: "尚無公告", content: "", date: "" };
+            
+            // Sync Task Options
+            const dbTasks = data.settings?.taskTypes || [];
+            if (dbTasks.length === 0) {
+                 // Initialize defaults if empty
+                 set(ref(db, 'settings/taskTypes'), DEFAULT_TASKS);
+                 taskOptions = DEFAULT_TASKS;
+            } else {
+                 taskOptions = dbTasks;
+            }
+            renderLogForm(); // Re-render log form with new options
             
             updateEmpSelect();
             renderBulletin();
@@ -507,7 +549,98 @@
             select.disabled = false;
         });
 
-        // --- Google Calendar Helper (MOBILE FIX: Return URL instead of Window.open) ---
+        // --- Work Log Logic (New) ---
+        function renderLogForm() {
+            const container = document.getElementById('logEntriesContainer');
+            if(!container) return;
+            
+            // Only render if empty to preserve user input during sync, or simplistic re-render
+            // For simplicity, we just rebuild options if select exists, or build full if empty
+            if (container.children.length > 1 && container.querySelector('select')) {
+                // Update options in existing selects
+                const selects = container.querySelectorAll('select');
+                selects.forEach(sel => {
+                    const currentVal = sel.value;
+                    sel.innerHTML = '<option value="">-- 選擇項目 --</option>';
+                    taskOptions.forEach(opt => {
+                        sel.innerHTML += `<option value="${opt}">${opt}</option>`;
+                    });
+                    sel.value = currentVal;
+                });
+                return;
+            }
+
+            container.innerHTML = '';
+            const timeSlots = [
+                "09:00 ~ 10:00", "10:00 ~ 11:00", "11:00 ~ 12:00",
+                "13:30 ~ 14:30", "14:30 ~ 15:30", "15:30 ~ 16:30", 
+                "16:30 ~ 17:30", "17:30 ~ 18:30"
+            ];
+
+            timeSlots.forEach((slot, index) => {
+                let optionsHtml = '<option value="">-- 選擇項目 --</option>';
+                taskOptions.forEach(opt => optionsHtml += `<option value="${opt}">${opt}</option>`);
+
+                container.innerHTML += `
+                    <div class="bg-white p-2 rounded border border-slate-200 flex flex-col md:flex-row gap-2 items-center shadow-sm">
+                        <div class="text-xs font-bold text-slate-500 w-full md:w-24 bg-slate-50 p-1.5 rounded text-center">${slot}</div>
+                        <select name="logTask" class="flex-1 p-1.5 text-sm border rounded w-full md:w-auto outline-none focus:border-blue-500">
+                            ${optionsHtml}
+                        </select>
+                        <input type="text" name="logDetail" class="flex-1 p-1.5 text-sm border rounded w-full md:w-auto outline-none focus:border-blue-500" placeholder="案件日期 / 客戶名稱">
+                        <input type="hidden" name="logTime" value="${slot}">
+                    </div>
+                `;
+            });
+        }
+
+        window.addNewTaskType = async () => {
+            const { value: newTask } = await Swal.fire({
+                title: '新增工作項目',
+                text: '此項目將同步顯示給所有同仁',
+                input: 'text',
+                inputPlaceholder: '例如：稅務申報',
+                showCancelButton: true,
+                confirmButtonColor: '#1e3a8a'
+            });
+
+            if (newTask) {
+                if (taskOptions.includes(newTask)) return Swal.fire('已存在', '此項目已在列表中', 'warning');
+                const newOptions = [...taskOptions, newTask];
+                await set(ref(db, 'settings/taskTypes'), newOptions);
+                Swal.fire('成功', '新項目已同步至全體同仁', 'success');
+            }
+        };
+
+        window.handleLogSubmit = (e) => {
+            e.preventDefault();
+            if (!currentUserId) return;
+            const emp = employees[currentUserId];
+            const date = document.getElementById('logDate').value;
+            
+            const entries = [];
+            const rows = document.querySelectorAll('#logEntriesContainer > div');
+            
+            rows.forEach(row => {
+                const time = row.querySelector('[name="logTime"]').value;
+                const task = row.querySelector('[name="logTask"]').value;
+                const detail = row.querySelector('[name="logDetail"]').value.trim();
+                
+                if (task) {
+                    entries.push(`${time} 【${task}】 ${detail}`);
+                }
+            });
+
+            if (entries.length === 0) return Swal.fire('內容空白', '請至少填寫一個時段的工作內容', 'warning');
+
+            let msg = `【工作日誌】${emp.name}\n📅 日期：${date}\n------------------\n`;
+            msg += entries.join('\n');
+            msg += `\n------------------\n(Nexus V5.7 生成)`;
+
+            window.open('https://line.me/R/msg/text/?' + encodeURIComponent(msg));
+        };
+
+        // --- Google Calendar Helper (MOBILE FIX) ---
         window.getGoogleCalendarUrl = (reqId) => {
             const req = requests[reqId];
             if(!req) return '#';
@@ -1108,6 +1241,7 @@
 
         document.getElementById('leaveDate').valueAsDate = new Date();
         document.getElementById('carDate').valueAsDate = new Date();
+        document.getElementById('logDate').valueAsDate = new Date();
     </script>
 </body>
 </html>
