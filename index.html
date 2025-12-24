@@ -7,9 +7,31 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        // 禁止右鍵
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        // 禁止常見開發者快捷鍵
+        document.onkeydown = function(e) {
+            // F12
+            if(e.keyCode == 123) {
+                return false;
+            }
+            // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C (開啟開發者工具)
+            if(e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) {
+                return false;
+            }
+            // Ctrl+U (檢視原始碼)
+            if(e.ctrlKey && e.keyCode == 85) {
+                return false;
+            }
+        }
+    </script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; color: #1e293b; user-select: none; /* 防止文字選取 */ }
         .serif { font-family: 'Noto Serif TC', serif; }
         .brand-bg { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); } 
         .text-brand-gold { color: #facc15; }
@@ -51,6 +73,9 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* 允許輸入框內的文字被選取，避免無法打字或複製自己的內容 */
+        input, textarea, select { user-select: text; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
