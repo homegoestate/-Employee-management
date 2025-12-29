@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宏國地政|易丞地政 - 智慧指揮艙 (Nexus V6.1 Secure)</title>
+    <title>宏國地政|易丞地政 - 智慧指揮艙 (Nexus V6.2)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -70,7 +70,7 @@
                 <div class="w-10 h-10 bg-white text-blue-900 rounded-lg flex items-center justify-center font-bold text-lg serif shadow-lg">宏</div>
                 <div>
                     <h1 class="text-base md:text-lg font-bold tracking-wider serif">宏國地政 | 易丞地政</h1>
-                    <p class="text-[10px] text-blue-200 tracking-widest uppercase">Nexus V6.1 (Secure)</p>
+                    <p class="text-[10px] text-blue-200 tracking-widest uppercase">Nexus V6.2 (Secure)</p>
                 </div>
             </div>
             <div class="flex bg-blue-900/50 rounded-full p-1">
@@ -957,15 +957,15 @@
             const currentDevices = emp.devices || [];
 
             if (currentDevices.includes(myDeviceId)) { loadEmployeeDashboard(id); return; }
-            if (currentDevices.length >= 2) {
-                Swal.fire({ icon: 'error', title: '綁定失敗', text: '您的帳號已綁定 2 台裝置。請聯繫管理員解綁舊裝置。' });
+            if (currentDevices.length >= 3) { // MODIFIED: Limit increased to 3
+                Swal.fire({ icon: 'error', title: '綁定失敗', text: '您的帳號已綁定 3 台裝置。請聯繫管理員解綁舊裝置。' });
                 document.getElementById('empSelect').value = "";
                 return;
             }
 
             Swal.fire({
                 title: '裝置綁定確認',
-                html: `即將綁定此裝置為 <b>${emp.name}</b> 的專用設備。<br>綁定後無法切換為其他人員。<br><br>目前已用額度: ${currentDevices.length}/2`,
+                html: `即將綁定此裝置為 <b>${emp.name}</b> 的專用設備。<br>綁定後無法切換為其他人員。<br><br>目前已用額度: ${currentDevices.length}/3`, // MODIFIED: Limit display
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#1e3a8a',
