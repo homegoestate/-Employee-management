@@ -3,35 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宏國地政|易丞地政 - 智慧指揮艙 (Nexus V5.7)</title>
+    <title>宏國地政|易丞地政 - 智慧指揮艙 (Nexus V6.1 Secure)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-    <script>
-        // 禁止右鍵
-        document.addEventListener('contextmenu', event => event.preventDefault());
-
-        // 禁止常見開發者快捷鍵
-        document.onkeydown = function(e) {
-            // F12
-            if(e.keyCode == 123) {
-                return false;
-            }
-            // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C (開啟開發者工具)
-            if(e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) {
-                return false;
-            }
-            // Ctrl+U (檢視原始碼)
-            if(e.ctrlKey && e.keyCode == 85) {
-                return false;
-            }
-        }
-    </script>
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; color: #1e293b; user-select: none; /* 防止文字選取 */ }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; color: #1e293b; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+        /* 允許輸入框內的文字被選取，否則無法編輯 */
+        input, textarea, select { -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text; }
+        
         .serif { font-family: 'Noto Serif TC', serif; }
         .brand-bg { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); } 
         .text-brand-gold { color: #facc15; }
@@ -73,9 +54,12 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        /* 允許輸入框內的文字被選取，避免無法打字或複製自己的內容 */
-        input, textarea, select { user-select: text; }
+
+        /* Finance Table Specifics */
+        .finance-header { background: #f1f5f9; color: #475569; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+        .finance-cell { padding: 0.75rem; font-size: 0.85rem; border-bottom: 1px solid #f1f5f9; }
+        .cost-highlight { color: #b91c1c; font-weight: bold; }
+        .deductible-badge { font-size: 0.65rem; background: #dcfce7; color: #166534; padding: 2px 4px; border-radius: 4px; margin-left: 4px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -86,7 +70,7 @@
                 <div class="w-10 h-10 bg-white text-blue-900 rounded-lg flex items-center justify-center font-bold text-lg serif shadow-lg">宏</div>
                 <div>
                     <h1 class="text-base md:text-lg font-bold tracking-wider serif">宏國地政 | 易丞地政</h1>
-                    <p class="text-[10px] text-blue-200 tracking-widest uppercase">Nexus V5.7 (Work Log)</p>
+                    <p class="text-[10px] text-blue-200 tracking-widest uppercase">Nexus V6.1 (Secure)</p>
                 </div>
             </div>
             <div class="flex bg-blue-900/50 rounded-full p-1">
@@ -116,7 +100,6 @@
         </section>
 
         <section id="employeeView" class="w-full space-y-6 hidden-section">
-            
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in-up">
                 <div class="lg:col-span-2 brand-bg rounded-2xl p-6 text-white relative overflow-hidden shadow-xl flex flex-col justify-center min-h-[160px]">
                     <div class="absolute top-0 right-0 bg-white/10 px-3 py-1 rounded-bl-lg text-[10px] font-bold tracking-widest uppercase text-blue-200">Official Notice</div>
@@ -328,12 +311,72 @@
                     </div>
                 </div>
 
+                <div class="lg:col-span-3 glass-panel p-0 overflow-hidden border-t-4 border-emerald-600 shadow-xl">
+                    <div class="p-6 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-coins text-emerald-600"></i> 企業財務與稅務支出分析表
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-1">
+                                根據勞基法、勞保條例及所得稅法自動試算。標示 <span class="deductible-badge">稅</span> 之項目可列為公司營業費用以抵稅。
+                            </p>
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="flex items-center gap-2 mr-2">
+                                <label class="text-xs font-bold text-slate-500">計算月份:</label>
+                                <input type="month" id="financeMonth" class="p-1 border rounded text-sm" onchange="renderCostTable()">
+                            </div>
+                            <button onclick="exportCostReport()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-4 py-2 rounded shadow flex items-center gap-2 font-bold transition-all">
+                                <i class="fa-solid fa-file-csv"></i> 匯出財務報表 (CSV)
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-100 text-slate-600 finance-header">
+                                <tr>
+                                    <th class="finance-cell w-32 sticky left-0 bg-slate-100 z-10">員工姓名</th>
+                                    <th class="finance-cell w-28 text-right">月薪 (Base) <span class="deductible-badge">稅</span></th>
+                                    <th class="finance-cell w-24 text-right">加班費 <span class="deductible-badge">稅</span></th>
+                                    <th class="finance-cell w-24 text-right text-red-500">請假扣款</th>
+                                    <th class="finance-cell w-24 text-right text-blue-600">自付勞保</th>
+                                    <th class="finance-cell w-24 text-right text-blue-600">自付健保</th>
+                                    <th class="finance-cell w-28 text-right font-bold bg-blue-50">實領薪資</th>
+                                    <th class="finance-cell w-4 border-l-2 border-slate-300"></th> <th class="finance-cell w-28 text-right text-slate-600">雇主勞保 <span class="deductible-badge">稅</span></th>
+                                    <th class="finance-cell w-28 text-right text-slate-600">雇主健保 <span class="deductible-badge">稅</span></th>
+                                    <th class="finance-cell w-28 text-right text-purple-600">勞退6% <span class="deductible-badge">稅</span></th>
+                                    <th class="finance-cell w-32 text-right bg-emerald-50 font-black cost-highlight">公司總成本</th>
+                                </tr>
+                            </thead>
+                            <tbody id="financeTableBody" class="divide-y divide-slate-100">
+                                </tbody>
+                            <tfoot class="bg-slate-50 font-bold text-xs uppercase text-slate-700">
+                                <tr>
+                                    <td class="finance-cell sticky left-0 bg-slate-50">總計</td>
+                                    <td class="finance-cell text-right" id="totalBase">0</td>
+                                    <td class="finance-cell text-right" id="totalOT">0</td>
+                                    <td class="finance-cell text-right" id="totalLeave">0</td>
+                                    <td class="finance-cell text-right" id="totalWorkerLabor">0</td>
+                                    <td class="finance-cell text-right" id="totalWorkerHealth">0</td>
+                                    <td class="finance-cell text-right bg-blue-100" id="totalNetPay">0</td>
+                                    <td class="finance-cell border-l-2 border-slate-300"></td>
+                                    <td class="finance-cell text-right" id="totalEmpLabor">0</td>
+                                    <td class="finance-cell text-right" id="totalEmpHealth">0</td>
+                                    <td class="finance-cell text-right" id="totalPension">0</td>
+                                    <td class="finance-cell text-right bg-emerald-100 text-emerald-800 text-sm" id="totalCost">0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
                 <div class="lg:col-span-3 glass-panel p-6 border-t-4 border-slate-700">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-clock-rotate-left text-slate-700"></i> 考勤與報表中心</h2>
+                        <h2 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-clock-rotate-left text-slate-700"></i> 考勤與其他報表</h2>
                         <div class="flex gap-2">
                             <button onclick="exportLeaveRequests()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded shadow flex items-center gap-1">
-                                <i class="fa-solid fa-file-invoice"></i> 匯出請假明細(含註記)
+                                <i class="fa-solid fa-file-invoice"></i> 匯出請假明細
                             </button>
                             <button onclick="exportAttendance()" class="bg-green-600 hover:bg-green-500 text-white text-xs px-3 py-2 rounded shadow flex items-center gap-1">
                                 <i class="fa-solid fa-file-excel"></i> 匯出打卡紀錄
@@ -467,14 +510,36 @@
         let employees = {};
         let requests = {};
         let attendance = {};
-        let taskOptions = []; // Store global task options
+        let taskOptions = []; 
         let bulletin = { title: "歡迎", content: "資料讀取中...", date: "" };
         let currentUserId = null;
         let currentDeduction = 0;
         let currentModalEmpId = null;
 
-        // Default tasks if none in DB
         const DEFAULT_TASKS = ["地政過戶", "貸款", "結案資料整理", "過水電", "用印", "對保", "塗銷"];
+
+        // --- Nexus Security Shield ---
+        // 封鎖右鍵選單
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        
+        // 封鎖開發者工具快捷鍵與原始碼檢視
+        document.addEventListener('keydown', event => {
+            // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+            if (
+                event.key === 'F12' || 
+                (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'J' || event.key === 'C')) || 
+                (event.ctrlKey && event.key === 'u')
+            ) {
+                event.preventDefault();
+            }
+        });
+
+        // 防止圖片被拖曳
+        document.addEventListener('dragstart', event => event.preventDefault());
+
+        // Console 警告威懾
+        console.log("%c⚠️ 系統警告", "color: red; font-size: 20px; font-weight: bold;");
+        console.log("%c此系統受 Nexus Security Protocol 保護，未經授權的存取或複製將被記錄。", "color: #1e3a8a; font-size: 14px;");
 
         // --- Device Fingerprint ---
         let myDeviceId = localStorage.getItem('hge_security_did');
@@ -489,7 +554,17 @@
             document.getElementById('liveClock').innerText = new Date().toLocaleTimeString('zh-TW', {hour12: false});
         }, 1000);
 
-        // --- UI ---
+        // --- Financial Logic Constants (Based on Taiwan 2024/2025 Estimates for Demo) ---
+        // Note: Actual insurance tables are tiered. This uses a simplified percentage algorithm for the dashboard.
+        const FIN_CONST = {
+            LABOR_EMP_RATE: 0.078, // Approx 11% * 70% + Accident
+            LABOR_WORKER_RATE: 0.022, // 11% * 20%
+            HEALTH_EMP_RATE: 0.049, // Approx 5.17% * 60% * 1.58 (Avg dependents)
+            HEALTH_WORKER_RATE: 0.0155, // 5.17% * 30%
+            PENSION_RATE: 0.06 // Mandatory 6%
+        };
+
+        // --- UI Switching ---
         window.switchView = (view) => {
             document.getElementById('employeeView').classList.add('hidden-section');
             document.getElementById('adminView').classList.add('hidden-section');
@@ -507,6 +582,10 @@
                 document.getElementById('adminView').classList.remove('hidden-section');
                 btnAdm.className = "px-4 py-1.5 rounded-full text-xs md:text-sm font-medium transition-all bg-white text-blue-900 shadow-sm";
                 btnEmp.className = "px-4 py-1.5 rounded-full text-xs md:text-sm font-medium text-blue-200 hover:text-white transition-all";
+                
+                // Initialize Finance Table on Admin Load
+                document.getElementById('financeMonth').value = new Date().toISOString().slice(0, 7);
+                renderCostTable();
             }
         };
 
@@ -517,24 +596,21 @@
         };
 
         window.switchAppTab = (tab) => {
-            // Reset all tabs
             document.getElementById('tab-leave').className = 'flex-1 py-2 text-center text-sm tab-inactive transition-colors';
             document.getElementById('tab-car').className = 'flex-1 py-2 text-center text-sm tab-inactive transition-colors';
             document.getElementById('tab-log').className = 'flex-1 py-2 text-center text-sm tab-inactive transition-colors';
             
-            // Activate selected
             const activeClass = 'flex-1 py-2 text-center text-sm tab-active transition-colors';
             if(tab === 'log') document.getElementById('tab-log').className = activeClass + ' font-bold text-purple-600';
             else document.getElementById('tab-' + tab).className = activeClass;
 
-            // Hide/Show forms
             document.getElementById('form-leave').classList.add('hidden-section');
             document.getElementById('form-car').classList.add('hidden-section');
             document.getElementById('form-log').classList.add('hidden-section');
             document.getElementById(`form-${tab}`).classList.remove('hidden-section');
         };
 
-        // --- Firebase ---
+        // --- Firebase Sync ---
         onValue(ref(db), (snapshot) => {
             const data = snapshot.val() || {};
             employees = data.employees || {};
@@ -542,16 +618,14 @@
             attendance = data.attendance || {};
             bulletin = data.bulletin || { title: "尚無公告", content: "", date: "" };
             
-            // Sync Task Options
             const dbTasks = data.settings?.taskTypes || [];
             if (dbTasks.length === 0) {
-                 // Initialize defaults if empty
                  set(ref(db, 'settings/taskTypes'), DEFAULT_TASKS);
                  taskOptions = DEFAULT_TASKS;
             } else {
                  taskOptions = dbTasks;
             }
-            renderLogForm(); // Re-render log form with new options
+            renderLogForm();
             
             updateEmpSelect();
             renderBulletin();
@@ -570,19 +644,172 @@
             renderApprovalQueue();
             renderAttendanceLog();
             
+            // Re-render cost table if data updates
+            if(!document.getElementById('adminView').classList.contains('hidden-section')) {
+                renderCostTable();
+            }
+
             const select = document.getElementById('empSelect');
             select.disabled = false;
         });
 
-        // --- Work Log Logic (New) ---
+        // --- Finance & Tax Calculation Logic ---
+        window.renderCostTable = () => {
+            const tbody = document.getElementById('financeTableBody');
+            const selectedMonth = document.getElementById('financeMonth').value; // YYYY-MM
+            tbody.innerHTML = '';
+            
+            let tBase=0, tOT=0, tLeave=0, tWLab=0, tWHea=0, tNet=0, tELab=0, tEHea=0, tPen=0, tCost=0;
+
+            Object.values(employees).forEach(emp => {
+                // Determine Salary: Use stored salary or default to 30000 (Allow edit via UI prompt in real app, simplified here)
+                // For this demo, we use a temporary input in the table to let admin adjust "Base Salary" live.
+                // We default to 30000 or the value currently in the input if it exists.
+                let baseSalary = 30000; 
+                // If we want to persist salary, we'd need to save it to DB. 
+                // For this reporting tool, we'll calculate based on an input field.
+                
+                // Calculate Deductions from Requests (Approved Leaves in selected month)
+                let leaveDeduction = 0;
+                let otPay = 0; // Simplified OT calculation would go here if we tracked OT hours in DB. 
+                               // Currently OT is only in the "Calculator" on employee side. 
+                               // For this report, we will assume 0 or allow manual entry.
+
+                // Calculate requests for this month
+                if(selectedMonth) {
+                    const [y, m] = selectedMonth.split('-');
+                    Object.values(requests).forEach(r => {
+                        if(r.empId === emp.id && r.status === 'approved' && r.category === 'leave') {
+                            const rDate = new Date(r.date);
+                            if(rDate.getFullYear() == y && (rDate.getMonth()+1) == m) {
+                                const dailyRate = Math.round(baseSalary/30);
+                                if(r.type === '病假') leaveDeduction += Math.round(dailyRate * r.days * 0.5);
+                                else if(r.type === '事假') leaveDeduction += Math.round(dailyRate * r.days);
+                            }
+                        }
+                    });
+                }
+
+                // Generate Row ID
+                const rid = `row-${emp.id}`;
+                
+                tbody.innerHTML += `
+                    <tr class="hover:bg-blue-50/30 transition-colors group" id="${rid}">
+                        <td class="finance-cell font-bold text-slate-700">${emp.name}</td>
+                        <td class="finance-cell text-right">
+                            <input type="number" class="w-20 text-right bg-transparent border-b border-dashed border-slate-300 focus:bg-white text-slate-700" 
+                                value="${baseSalary}" onchange="recalcRow('${emp.id}')" id="sal-${emp.id}">
+                        </td>
+                        <td class="finance-cell text-right">
+                            <input type="number" class="w-16 text-right bg-transparent border-b border-dashed border-slate-300 focus:bg-white text-slate-700" 
+                                value="0" onchange="recalcRow('${emp.id}')" id="ot-${emp.id}">
+                        </td>
+                        <td class="finance-cell text-right text-red-500 font-mono" id="leave-${emp.id}">${leaveDeduction}</td>
+                        
+                        <td class="finance-cell text-right text-blue-600 font-mono text-xs" id="wLab-${emp.id}">0</td>
+                        <td class="finance-cell text-right text-blue-600 font-mono text-xs" id="wHea-${emp.id}">0</td>
+                        <td class="finance-cell text-right font-bold text-blue-900 bg-blue-50/50" id="net-${emp.id}">0</td>
+                        
+                        <td class="finance-cell border-l-2 border-slate-300"></td>
+                        
+                        <td class="finance-cell text-right text-slate-500 font-mono text-xs" id="eLab-${emp.id}">0</td>
+                        <td class="finance-cell text-right text-slate-500 font-mono text-xs" id="eHea-${emp.id}">0</td>
+                        <td class="finance-cell text-right text-purple-600 font-mono text-xs" id="pen-${emp.id}">0</td>
+                        <td class="finance-cell text-right font-black text-emerald-700 bg-emerald-50/50" id="cost-${emp.id}">0</td>
+                    </tr>
+                `;
+                
+                // Trigger calculation for this row immediately after adding
+                setTimeout(() => recalcRow(emp.id), 0);
+            });
+        };
+
+        window.recalcRow = (empId) => {
+            const salary = parseInt(document.getElementById(`sal-${empId}`).value) || 0;
+            const ot = parseInt(document.getElementById(`ot-${empId}`).value) || 0;
+            const leave = parseInt(document.getElementById(`leave-${empId}`).innerText) || 0;
+
+            // Worker Deductions
+            const wLab = Math.round(salary * FIN_CONST.LABOR_WORKER_RATE);
+            const wHea = Math.round(salary * FIN_CONST.HEALTH_WORKER_RATE);
+            const net = salary + ot - leave - wLab - wHea;
+
+            // Employer Costs
+            const eLab = Math.round(salary * FIN_CONST.LABOR_EMP_RATE);
+            const eHea = Math.round(salary * FIN_CONST.HEALTH_EMP_RATE);
+            const pen = Math.round(salary * FIN_CONST.PENSION_RATE);
+            const totalCost = salary + ot - leave + eLab + eHea + pen; 
+            // Note: Total cost is Gross Salary (adj for leave/ot) + Employer overheads. 
+            // The worker's insurance is part of the Gross Salary, not an extra cost to employer (it's withheld).
+
+            // Update DOM
+            document.getElementById(`wLab-${empId}`).innerText = wLab.toLocaleString();
+            document.getElementById(`wHea-${empId}`).innerText = wHea.toLocaleString();
+            document.getElementById(`net-${empId}`).innerText = net.toLocaleString();
+            document.getElementById(`eLab-${empId}`).innerText = eLab.toLocaleString();
+            document.getElementById(`eHea-${empId}`).innerText = eHea.toLocaleString();
+            document.getElementById(`pen-${empId}`).innerText = pen.toLocaleString();
+            document.getElementById(`cost-${empId}`).innerText = totalCost.toLocaleString();
+
+            updateFinanceTotals();
+        };
+
+        window.updateFinanceTotals = () => {
+            let totals = { base:0, ot:0, leave:0, wLab:0, wHea:0, net:0, eLab:0, eHea:0, pen:0, cost:0 };
+            
+            Object.values(employees).forEach(emp => {
+                const getVal = (prefix) => parseInt(document.getElementById(`${prefix}-${emp.id}`)?.innerText.replace(/,/g,'') || document.getElementById(`${prefix}-${emp.id}`)?.value || 0);
+                totals.base += getVal('sal');
+                totals.ot += getVal('ot');
+                totals.leave += getVal('leave');
+                totals.wLab += getVal('wLab');
+                totals.wHea += getVal('wHea');
+                totals.net += getVal('net');
+                totals.eLab += getVal('eLab');
+                totals.eHea += getVal('eHea');
+                totals.pen += getVal('pen');
+                totals.cost += getVal('cost');
+            });
+
+            document.getElementById('totalBase').innerText = totals.base.toLocaleString();
+            document.getElementById('totalOT').innerText = totals.ot.toLocaleString();
+            document.getElementById('totalLeave').innerText = totals.leave.toLocaleString();
+            document.getElementById('totalWorkerLabor').innerText = totals.wLab.toLocaleString();
+            document.getElementById('totalWorkerHealth').innerText = totals.wHea.toLocaleString();
+            document.getElementById('totalNetPay').innerText = totals.net.toLocaleString();
+            document.getElementById('totalEmpLabor').innerText = totals.eLab.toLocaleString();
+            document.getElementById('totalEmpHealth').innerText = totals.eHea.toLocaleString();
+            document.getElementById('totalPension').innerText = totals.pen.toLocaleString();
+            document.getElementById('totalCost').innerText = totals.cost.toLocaleString();
+        };
+
+        window.exportCostReport = () => {
+            const month = document.getElementById('financeMonth').value || 'Current';
+            let csv = `\uFEFF宏國地政財務分析報表 - ${month}\n`;
+            csv += "員工姓名,月薪(稅),加班費(稅),請假扣款,員工勞保(代扣),員工健保(代扣),實領薪資,雇主勞保(稅),雇主健保(稅),勞退6%(稅),公司總成本\n";
+
+            Object.values(employees).forEach(emp => {
+                 const getVal = (prefix) => document.getElementById(`${prefix}-${emp.id}`)?.innerText.replace(/,/g,'') || document.getElementById(`${prefix}-${emp.id}`)?.value || 0;
+                 csv += `${emp.name},${getVal('sal')},${getVal('ot')},${getVal('leave')},${getVal('wLab')},${getVal('wHea')},${getVal('net')},${getVal('eLab')},${getVal('eHea')},${getVal('pen')},${getVal('cost')}\n`;
+            });
+
+            // Add Footer
+            const getTotal = (id) => document.getElementById(id).innerText.replace(/,/g,'');
+            csv += `總計,${getTotal('totalBase')},${getTotal('totalOT')},${getTotal('totalLeave')},${getTotal('totalWorkerLabor')},${getTotal('totalWorkerHealth')},${getTotal('totalNetPay')},${getTotal('totalEmpLabor')},${getTotal('totalEmpHealth')},${getTotal('totalPension')},${getTotal('totalCost')}\n`;
+            csv += `\n備註：標示(稅)之項目為公司可列支之營業費用。員工自付勞健保包含在月薪內，故月薪本身即為全額費用，不重複計算自付額。\n`;
+
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+            link.download = `財務成本報表_${month}.csv`;
+            link.click();
+        };
+
+        // --- Work Log Logic ---
         function renderLogForm() {
             const container = document.getElementById('logEntriesContainer');
             if(!container) return;
             
-            // Only render if empty to preserve user input during sync, or simplistic re-render
-            // For simplicity, we just rebuild options if select exists, or build full if empty
             if (container.children.length > 1 && container.querySelector('select')) {
-                // Update options in existing selects
                 const selects = container.querySelectorAll('select');
                 selects.forEach(sel => {
                     const currentVal = sel.value;
@@ -665,7 +892,7 @@
             window.open('https://line.me/R/msg/text/?' + encodeURIComponent(msg));
         };
 
-        // --- Google Calendar Helper (MOBILE FIX) ---
+        // --- Google Calendar Helper ---
         window.getGoogleCalendarUrl = (reqId) => {
             const req = requests[reqId];
             if(!req) return '#';
@@ -898,7 +1125,7 @@
             Swal.fire('已送出', '申請已提交', 'success');
         };
 
-        // --- Admin Logic (Stats Update) ---
+        // --- Admin Logic ---
         window.processRequest = (reqId, action) => {
             const req = requests[reqId]; 
             if (!req) return Swal.fire('錯誤', '找不到該申請紀錄', 'error');
@@ -935,7 +1162,6 @@
                         update(ref(db, `requests/${reqId}`), { status: action === 'approve' ? 'approved' : 'rejected' })
                             .then(() => {
                                 if(action === 'approve') {
-                                    // MOBILE FIX: Show DIRECT LINK instead of window.open inside promise
                                     const calUrl = window.getGoogleCalendarUrl(reqId);
                                     Swal.fire({
                                         title: '批准成功',
@@ -946,7 +1172,7 @@
                                             </a>
                                         `,
                                         icon: 'success',
-                                        showConfirmButton: false, // Hide default button
+                                        showConfirmButton: false, 
                                         showCloseButton: true
                                     });
                                 } else {
@@ -989,7 +1215,6 @@
                     const detail = req.category === 'car' ? `公務車: ${req.location}` : `${req.type} (${req.days}天)`;
                     const note = req.adminNote ? `<span class="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-1 rounded">${req.adminNote}</span>` : '<span class="text-slate-300 text-[10px]">-</span>';
                     
-                    // MOBILE FIX: Use <a href> instead of <button onclick>
                     const calUrl = window.getGoogleCalendarUrl(req.id);
                     const calBtn = req.status === 'approved' ? 
                         `<a href="${calUrl}" target="_blank" class="text-blue-500 hover:text-blue-700"><i class="fa-regular fa-calendar-plus"></i></a>` : 
@@ -1025,7 +1250,7 @@
             if (text !== undefined) {
                 update(ref(db, `requests/${reqId}`), { adminNote: text })
                     .then(() => {
-                        window.openHistory(currentModalEmpId); // Refresh modal
+                        window.openHistory(currentModalEmpId); 
                     });
             }
         };
@@ -1181,16 +1406,14 @@
             document.getElementById('displayBulletinDate').innerText = bulletin.date;
         }
         
-        // --- NEW: Activity Feed Logic ---
         function renderActivityFeed() {
             const feedContainer = document.getElementById('activityFeed');
             const now = new Date();
-            // Get all approved requests
             const activeReqs = Object.values(requests)
                 .filter(r => r.status === 'approved')
-                .filter(r => new Date(r.date) >= new Date(now.setHours(0,0,0,0))) // Only today or future
-                .sort((a,b) => new Date(a.date) - new Date(b.date)) // Sort by date asc
-                .slice(0, 10); // Limit to next 10
+                .filter(r => new Date(r.date) >= new Date(now.setHours(0,0,0,0))) 
+                .sort((a,b) => new Date(a.date) - new Date(b.date)) 
+                .slice(0, 10); 
 
             if (activeReqs.length === 0) {
                 feedContainer.innerHTML = '<div class="p-4 text-center text-xs text-slate-400">未來 7 天內無請假或用車紀錄</div>';
@@ -1253,7 +1476,7 @@
             
             let csv = "\uFEFF姓名,日期,假別,天數,事由,狀態,管理員註記\n";
             reqs.forEach(r => {
-                const note = r.adminNote ? r.adminNote.replace(/,/g, ' ') : ''; // Handle commas
+                const note = r.adminNote ? r.adminNote.replace(/,/g, ' ') : ''; 
                 const reason = r.reason ? r.reason.replace(/,/g, ' ') : '';
                 csv += `${r.empName},${r.date},${r.type},${r.days},${reason},${r.status},${note}\n`;
             });
