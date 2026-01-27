@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宏國地政|易丞地政 - 智慧指揮艙 (Nexus V5.13 Security)</title>
+    <title>宏國地政|易丞地政 - 智慧指揮艙 (Nexus V5.15 Identity)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -54,6 +54,12 @@
         .tag-late { background-color: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid #fecaca; }
         .tag-ot { background-color: #f3e8ff; color: #6b21a8; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid #e9d5ff; }
         .tag-ok { background-color: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid #bbf7d0; }
+
+        /* Avatar Hover Effect */
+        .avatar-hover-container { position: relative; cursor: pointer; transition: transform 0.2s; }
+        .avatar-hover-container:active { transform: scale(0.95); }
+        .avatar-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); border-radius: 9999px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+        .avatar-hover-container:hover .avatar-overlay { opacity: 1; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -64,7 +70,7 @@
                 <div class="w-10 h-10 bg-white text-blue-900 rounded-lg flex items-center justify-center font-bold text-lg serif shadow-lg">宏</div>
                 <div>
                     <h1 class="text-base md:text-lg font-bold tracking-wider serif">宏國地政 | 易丞地政</h1>
-                    <p class="text-[10px] text-blue-200 tracking-widest uppercase">Nexus V5.13 (Security)</p>
+                    <p class="text-[10px] text-blue-200 tracking-widest uppercase">Nexus V5.15 (Identity)</p>
                 </div>
             </div>
             <div class="flex bg-blue-900/50 rounded-full p-1">
@@ -94,6 +100,7 @@
         </section>
 
         <section id="employeeView" class="w-full space-y-6 hidden-section">
+            <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="handleAvatarChange(event)">
             
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in-up">
                 <div class="lg:col-span-2 brand-bg rounded-2xl p-6 text-white relative overflow-hidden shadow-xl flex flex-col justify-center min-h-[160px]">
@@ -267,7 +274,16 @@
                             <i class="fa-solid fa-scale-balanced"></i>
                         </div>
 
-                        <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-2xl mb-2"><span id="dashboardAvatar">👤</span></div>
+                        <div class="avatar-hover-container w-20 h-20 mb-2 relative" onclick="triggerAvatarUpload()">
+                            <img id="dashboardAvatarImg" src="" class="w-full h-full rounded-full object-cover border-4 border-white shadow-lg bg-slate-100 hidden">
+                            <div id="dashboardAvatarPlaceholder" class="w-full h-full bg-slate-100 rounded-full flex items-center justify-center text-3xl text-slate-300 border-4 border-white shadow-lg">
+                                👤
+                            </div>
+                            <div class="avatar-overlay">
+                                <i class="fa-solid fa-camera text-white"></i>
+                            </div>
+                        </div>
+
                         <h2 id="dashboardName" class="text-xl font-bold text-slate-800">...</h2>
                         
                         <div class="flex flex-col items-center gap-1 mt-1">
@@ -573,7 +589,6 @@
         };
 
         window.checkAdminLogin = async () => {
-            // UPDATED: Use SweetAlert for password masking
             const { value: pass } = await Swal.fire({
                 title: '管理員驗證',
                 input: 'password',
@@ -632,6 +647,18 @@
                     document.getElementById('dashboardRule').innerText = calc.rule;
                     document.getElementById('dashboardComp').innerText = comp;
                     document.getElementById('dashboardJoinDate').innerText = emp.joinDate;
+                    
+                    // Render Avatar
+                    const avatarImg = document.getElementById('dashboardAvatarImg');
+                    const avatarPlace = document.getElementById('dashboardAvatarPlaceholder');
+                    if (emp.avatar) {
+                        avatarImg.src = emp.avatar;
+                        avatarImg.classList.remove('hidden');
+                        avatarPlace.classList.add('hidden');
+                    } else {
+                        avatarImg.classList.add('hidden');
+                        avatarPlace.classList.remove('hidden');
+                    }
                  }
             }
             renderAdminTable();
@@ -656,7 +683,42 @@
             }
         }
 
-        // --- Work Log ---
+        // --- Avatar Logic ---
+        window.triggerAvatarUpload = () => {
+            document.getElementById('avatarInput').click();
+        };
+
+        window.handleAvatarChange = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Resize to 300x300 for database efficiency
+                    const MAX_WIDTH = 300;
+                    const scaleSize = MAX_WIDTH / Math.max(img.width, img.height);
+                    canvas.width = img.width * scaleSize;
+                    canvas.height = img.height * scaleSize;
+                    
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // Compress to JPEG 0.7 quality
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    update(ref(db, `employees/${currentUserId}`), { avatar: dataUrl })
+                        .then(() => Swal.fire('成功', '大頭照已更新', 'success'));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        // --- Work Log (LINE ONLY) ---
         function renderLogForm() {
             const container = document.getElementById('logEntriesContainer');
             if(!container) return;
@@ -676,6 +738,34 @@
                     </div>`;
             });
         }
+
+        window.handleLogSubmit = (e) => {
+            e.preventDefault();
+            if (!currentUserId) return;
+            const emp = employees[currentUserId];
+            const date = document.getElementById('logDate').value;
+            
+            const entries = [];
+            const rows = document.querySelectorAll('#logEntriesContainer > div');
+            
+            rows.forEach(row => {
+                const time = row.querySelector('[name="logTime"]').value;
+                const task = row.querySelector('[name="logTask"]').value;
+                const detail = row.querySelector('[name="logDetail"]').value.trim();
+                
+                if (task) {
+                    entries.push(`${time} 【${task}】 ${detail}`);
+                }
+            });
+
+            if (entries.length === 0) return Swal.fire('內容空白', '請至少填寫一個時段的工作內容', 'warning');
+
+            let msg = `【工作日誌】${emp.name}\n📅 日期：${date}\n------------------\n`;
+            msg += entries.join('\n');
+            msg += `\n------------------\n(Nexus V5.15 生成)`;
+
+            window.open('https://line.me/R/msg/text/?' + encodeURIComponent(msg));
+        };
 
         // --- Google Calendar Sync Utility ---
         window.getGoogleCalendarUrl = (reqId) => {
@@ -753,7 +843,6 @@
             const emp = employees[id];
             if (emp) {
                 document.getElementById('dashboardName').innerText = emp.name;
-                document.getElementById('dashboardAvatar').innerText = emp.gender === 'F' ? '👩‍💼' : '👨‍💼';
                 document.getElementById('loginSection').classList.add('hidden-section');
                 document.getElementById('employeeView').classList.remove('hidden-section');
                 window.calculateOvertime(); window.updateImpactInfo();
@@ -1004,6 +1093,7 @@
             return `${y > 0 ? y + '年 ' : ''}${m}個月`;
         }
 
+        // FIXED: Admin Table Rendering matching Screenshot
         function renderAdminTable() {
             const tbody = document.getElementById('adminTableBody');
             tbody.innerHTML = '';
@@ -1011,17 +1101,23 @@
                 const devs = (emp.devices || []).map((d,i)=>`<span class="device-badge cursor-pointer hover:bg-red-100" onclick="unbindDevice('${emp.id}',${i})">📱 ${d.substr(0,4)}</span>`).join(' ');
                 const calc = calculateLeave(emp.joinDate);
                 const stats = emp.stats || {annual:0};
-                
-                // UPDATED: Add Tenure Badge
                 const tenure = calculateTenure(emp.joinDate);
+                
+                // Show avatar in admin list if exists
+                const avatarHTML = emp.avatar 
+                    ? `<img src="${emp.avatar}" class="w-8 h-8 rounded-full border border-slate-200 object-cover mr-2 inline-block">` 
+                    : `<div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs mr-2 inline-block">👤</div>`;
 
                 tbody.innerHTML += `
                     <tr class="border-b text-sm">
-                        <td class="p-3 font-bold">${emp.name}</td>
+                        <td class="p-3 font-bold flex items-center">
+                            ${avatarHTML}
+                            ${emp.name}
+                        </td>
                         <td class="p-3 text-xs">
                             <div class="flex items-center gap-1 mb-1">
                                 <span class="text-slate-400">到職:</span> ${emp.joinDate}
-                                <span class="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded ml-1 font-bold">${tenure}</span>
+                                <span class="bg-slate-200 text-slate-600 text-[10px] px-1.5 py-0.5 rounded ml-1 font-bold">${tenure}</span>
                             </div>
                             <div><span class="text-slate-400">生日:</span> ${emp.birthday||'-'}</div>
                         </td>
