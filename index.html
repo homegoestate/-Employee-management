@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宏國地政|易丞地政 - 智慧指揮艙 (Nexus V5.24 Personal-Cal)</title>
+    <title>宏國地政|易丞地政 - 智慧指揮艙 (Nexus V5.26 Device-Lock)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -72,7 +72,7 @@
                 <div class="w-10 h-10 bg-white text-blue-900 rounded-lg flex items-center justify-center font-bold text-lg serif shadow-lg">宏</div>
                 <div>
                     <h1 class="text-base md:text-lg font-bold tracking-wider serif">宏國地政 | 易丞地政</h1>
-                    <p class="text-[10px] text-blue-200 tracking-widest uppercase">Nexus V5.24 Personal-Cal</p>
+                    <p class="text-[10px] text-blue-200 tracking-widest uppercase">Nexus V5.26 Device-Lock</p>
                 </div>
             </div>
             <div class="flex bg-blue-900/50 rounded-full p-1">
@@ -84,12 +84,49 @@
 
     <main class="flex-grow p-4 md:p-6 max-w-7xl mx-auto w-full">
         <section id="loginSection" class="w-full glass-panel p-10 text-center max-w-lg mx-auto mt-12 fade-in-up">
-            <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 text-2xl"><i class="fa-solid fa-mobile-screen-button"></i></div>
-            <h2 class="text-2xl font-bold text-slate-800 mb-2">裝置驗證系統</h2>
-            <p class="text-slate-500 mb-4 text-sm">系統將自動識別您的裝置權限 (上限 3 台)</p>
-            <div class="bg-slate-100 p-2 rounded mb-6 text-xs text-slate-400 font-mono">本機 ID: <span id="myDeviceIdDisplay">偵測中...</span></div>
-            <select id="empSelect" onchange="tryBindAndLogin()" class="w-full p-3 pl-4 text-lg input-modern cursor-pointer text-center font-bold text-slate-700 disabled:opacity-50 mb-4" disabled><option value="">-- 資料載入中 --</option></select>
-            <div id="loginStatusMsg" class="text-sm text-blue-600 font-bold hidden"><i class="fa-solid fa-spinner fa-spin"></i> 正在驗證裝置安全性...</div>
+            <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 text-2xl"><i class="fa-solid fa-shield-halved"></i></div>
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">身分驗證系統</h2>
+            <p class="text-slate-500 mb-6 text-sm">系統已啟用裝置鎖定保護</p>
+            
+            <div class="space-y-4">
+                <button onclick="handleBiometricLogin()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all transform active:scale-95">
+                    <i class="fa-solid fa-fingerprint text-2xl"></i>
+                    <div class="text-left">
+                        <div class="font-bold text-lg">生物辨識登入</div>
+                        <div class="text-[10px] opacity-80">FaceID / TouchID / Windows Hello</div>
+                    </div>
+                </button>
+
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink-0 mx-4 text-slate-400 text-xs">裝置綁定狀態</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+
+                <div id="userSelectContainer">
+                    <select id="empSelect" onchange="tryBindAndLogin()" class="w-full p-3 pl-4 text-lg input-modern cursor-pointer text-center font-bold text-slate-700 disabled:opacity-50" disabled>
+                        <option value="">-- 讀取資料中 --</option>
+                    </select>
+                    <div class="text-[10px] text-red-400 mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 注意：首次登入將自動綁定此裝置，無法更改。</div>
+                </div>
+
+                <div id="deviceLockedMsg" class="hidden p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                    <div class="text-center">
+                        <i class="fa-solid fa-lock text-2xl text-blue-600 mb-2"></i>
+                        <div class="text-sm font-bold text-slate-700">此裝置已鎖定</div>
+                        <div class="text-xs text-slate-500 mt-1">專屬使用者：<span id="lockedUserName" class="font-bold text-blue-800 text-lg block mt-1">--</span></div>
+                        <button onclick="loadEmployeeDashboard()" class="mt-3 w-full bg-blue-600 text-white text-xs py-2 rounded hover:bg-blue-700">進入系統</button>
+                    </div>
+                </div>
+                
+                <div id="loginStatusMsg" class="text-sm text-blue-600 font-bold hidden mt-2">
+                    <i class="fa-solid fa-spinner fa-spin"></i> 驗證中...
+                </div>
+                
+                <div class="bg-slate-50 p-2 rounded text-[10px] text-slate-400 font-mono">
+                    Device ID: <span id="myDeviceIdDisplay">...</span>
+                </div>
+            </div>
         </section>
 
         <section id="employeeView" class="w-full space-y-6 hidden-section">
@@ -161,10 +198,7 @@
                                     </select>
                                 </div>
                                 <div><label class="block text-xs font-bold text-slate-500 mb-1">日期</label><input type="date" id="leaveDate" class="w-full p-2.5 input-modern"></div>
-                                <div id="inputDayMode" class="md:col-span-2">
-                                    <label class="block text-xs font-bold text-slate-500 mb-1">天數</label>
-                                    <input type="number" id="leaveDays" min="0.5" step="0.5" value="1" class="w-full p-2.5 input-modern" oninput="updateImpactInfo()">
-                                </div>
+                                <div id="inputDayMode" class="md:col-span-2"><label class="block text-xs font-bold text-slate-500 mb-1">天數</label><input type="number" id="leaveDays" min="0.5" step="0.5" value="1" class="w-full p-2.5 input-modern" oninput="updateImpactInfo()"></div>
                                 <div id="inputTimeMode" class="hidden md:col-span-2 grid grid-cols-2 gap-4">
                                     <div><label class="block text-xs font-bold text-slate-500 mb-1">開始</label><input type="time" id="leaveStartTime" class="w-full p-2.5 input-modern" onchange="calcTimeDiff()"></div>
                                     <div><label class="block text-xs font-bold text-slate-500 mb-1">結束</label><input type="time" id="leaveEndTime" class="w-full p-2.5 input-modern" onchange="calcTimeDiff()"></div>
@@ -207,15 +241,6 @@
                         </div>
                         <div class="calendar-header"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
                         <div id="empCalendarGrid" class="calendar-grid"><div class="p-4 text-center text-slate-400 col-span-7">載入中...</div></div>
-                        <div class="mt-2 text-[10px] text-slate-400 flex gap-2 justify-end">
-                            <span class="flex items-center"><span class="w-2 h-2 bg-blue-50 border border-blue-200 mr-1"></span>正常</span>
-                            <span class="flex items-center"><span class="w-2 h-2 bg-red-50 border border-red-200 mr-1"></span>異常/遲到</span>
-                        </div>
-                    </div>
-
-                    <div class="glass-panel p-6 fade-in-up">
-                        <h3 class="font-bold text-slate-700 mb-4 text-sm uppercase tracking-wider">最近申請紀錄</h3>
-                        <div class="overflow-x-auto"><table class="w-full text-sm text-left"><tbody id="myRequestsTable" class="divide-y divide-slate-100"></tbody></table></div>
                     </div>
                 </div>
 
@@ -270,7 +295,11 @@
                                 <div class="text-[10px] text-slate-400 uppercase mt-1">特休剩餘</div><div class="font-bold text-green-600 text-lg" id="dashboardRemaining">--</div>
                             </div>
                         </div>
-                        <div class="mt-2 text-xs text-slate-500">補休餘額: <span class="font-bold text-orange-600" id="dashboardComp">0</span> 天</div>
+                        <div class="mt-4 border-t pt-2 w-full">
+                            <button onclick="registerWebAuthn()" class="w-full bg-slate-100 text-slate-600 text-xs py-2 rounded hover:bg-slate-200 flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-link"></i> 綁定此裝置 (FaceID/指紋)
+                            </button>
+                        </div>
                         <div id="legalInfoCard" class="hidden absolute inset-0 bg-white/95 backdrop-blur z-20 rounded-xl p-4 flex flex-col justify-center text-left border border-blue-200">
                             <h4 class="font-bold text-blue-800 mb-2 border-b pb-1">📜 勞基法第38條</h4>
                             <ul class="text-xs space-y-1 text-slate-600 list-disc pl-4"><li>6月-1年: 3日</li><li>1-2年: 7日</li><li>2-3年: 10日</li><li>3-5年: 14日</li><li>5-10年: 15日</li><li>10年以上: +1/年 (上限30)</li></ul>
@@ -283,46 +312,31 @@
 
         <section id="adminView" class="hidden-section w-full fade-in-up">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
                 <div class="lg:col-span-3 glass-panel p-6 border-t-4 border-purple-500 mb-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-calendar-days text-purple-600"></i> 團隊出勤總覽
-                        </h2>
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-calendar-days text-purple-600"></i> 團隊出勤總覽</h2>
                         <div class="flex items-center gap-2">
                             <button onclick="changeMonth(-1)" class="bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded text-slate-600"><i class="fa-solid fa-chevron-left"></i></button>
                             <span id="calendarTitle" class="font-bold text-slate-700 min-w-[100px] text-center">--/--</span>
                             <button onclick="changeMonth(1)" class="bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded text-slate-600"><i class="fa-solid fa-chevron-right"></i></button>
                         </div>
                     </div>
-                    <div class="calendar-header">
-                        <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
-                    </div>
-                    <div id="calendarGrid" class="calendar-grid">
-                        <div class="p-4 text-center text-slate-400 text-sm col-span-7">載入中...</div>
-                    </div>
+                    <div class="calendar-header"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
+                    <div id="calendarGrid" class="calendar-grid"><div class="p-4 text-center text-slate-400 text-sm col-span-7">載入中...</div></div>
                 </div>
-
                 <div class="lg:col-span-2 glass-panel p-6 border-t-4 border-blue-600">
-                    <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-clipboard-check text-blue-600"></i> 申請審核中心 
-                        <span id="pendingCountBadge" class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full hidden">0</span>
-                    </h2>
+                    <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-clipboard-check text-blue-600"></i> 申請審核中心 <span id="pendingCountBadge" class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full hidden">0</span></h2>
                     <div class="overflow-x-auto"><table class="w-full text-left text-sm"><tbody id="approvalTableBody" class="divide-y divide-slate-100"></tbody></table></div>
                     <div id="noPendingMsg" class="text-center py-8 text-slate-400"><i class="fa-regular fa-circle-check text-4xl mb-2 text-slate-200"></i><p>目前沒有待審核的申請</p></div>
                 </div>
-
                 <div class="lg:col-span-1 glass-panel p-6 border-t-4 border-brand-gold">
                     <h2 class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-bullhorn text-brand-gold mr-2"></i> 置頂公告管理</h2>
                     <input type="text" id="adminBulletinTitle" class="w-full p-2 mb-2 input-modern" placeholder="標題">
                     <textarea id="adminBulletinContent" rows="4" class="w-full p-2 mb-2 input-modern" placeholder="內容"></textarea>
                     <button onclick="saveBulletin()" class="w-full bg-slate-800 text-white p-2 rounded font-bold hover:bg-slate-700">更新置頂發布</button>
                 </div>
-
                 <div class="lg:col-span-3 glass-panel p-6 border-t-4 border-indigo-600 mb-6">
-                    <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-gear text-indigo-600"></i> 全域薪資規則 (預設基準)
-                    </h2>
+                    <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-gear text-indigo-600"></i> 全域薪資規則 (預設基準)</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="space-y-3">
                             <h3 class="font-bold text-sm text-slate-600 border-b pb-1">💰 基本參數</h3>
@@ -347,7 +361,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="lg:col-span-3 glass-panel p-6 border-t-4 border-slate-700">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-clock-rotate-left text-slate-700"></i> 考勤與報表中心</h2>
@@ -363,7 +376,6 @@
                         </table>
                     </div>
                 </div>
-
                 <div class="lg:col-span-3 glass-panel p-6">
                     <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-users mr-1"></i> 員工全方位管理</h2>
                     <div class="flex flex-wrap gap-2 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
@@ -385,10 +397,7 @@
 
         <div id="historyModal" class="modal-overlay">
             <div class="modal-content">
-                <div class="p-4 border-b bg-slate-100 flex justify-between items-center">
-                    <h3 class="font-bold text-slate-800 text-lg"><i class="fa-solid fa-sliders mr-2"></i> 假勤數據中控 - <span id="modalEmpName"></span></h3>
-                    <button onclick="closeHistory()" class="text-slate-500 hover:text-red-500 text-xl"><i class="fa-solid fa-times"></i></button>
-                </div>
+                <div class="p-4 border-b bg-slate-100 flex justify-between items-center"><h3 class="font-bold text-slate-800 text-lg">假勤數據中控</h3><button onclick="closeHistory()" class="text-slate-500 hover:text-red-500 text-xl"><i class="fa-solid fa-times"></i></button></div>
                 <div class="p-6 overflow-y-auto flex-1 bg-slate-50">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <div class="bg-white p-4 rounded-lg border border-blue-200 shadow-sm relative"><div class="absolute top-0 right-0 bg-blue-100 text-blue-800 text-[10px] px-2 py-1 font-bold">特休 (Annual)</div><div class="mt-2 space-y-2"><div class="flex justify-between items-center text-sm"><span class="text-slate-500">已使用</span><input type="number" id="adjAnnualUsed" class="border rounded w-16 text-center font-bold text-blue-700" step="0.125"></div></div></div>
@@ -404,20 +413,15 @@
 
         <div id="salaryModal" class="modal-overlay">
             <div class="modal-content max-w-lg">
-                <div class="p-4 border-b bg-indigo-600 text-white flex justify-between items-center">
-                    <h3 class="font-bold"><i class="fa-solid fa-money-bill-wave mr-2"></i>個別薪資設定 - <span id="salaryEmpName"></span></h3>
-                    <button onclick="closeSalaryModal()" class="text-white hover:text-red-300"><i class="fa-solid fa-times"></i></button>
-                </div>
+                <div class="p-4 border-b bg-indigo-600 text-white flex justify-between items-center"><h3 class="font-bold">個別薪資設定</h3><button onclick="closeSalaryModal()" class="text-white hover:text-red-300"><i class="fa-solid fa-times"></i></button></div>
                 <div class="p-6 space-y-4 bg-white">
                     <input type="hidden" id="salaryEmpId">
-                    <div class="bg-yellow-50 p-3 rounded text-xs text-yellow-800 border border-yellow-200">
-                        <i class="fa-solid fa-circle-exclamation mr-1"></i> 設定此處將會「覆蓋」全域預設值。若要使用全域設定，請將欄位留空。
-                    </div>
-                    <div><label class="block text-xs font-bold text-slate-500 mb-1">底薪 (Base Salary)</label><input type="number" id="indBaseSalary" class="w-full p-2 input-modern" placeholder="預設: 30000"></div>
-                    <div><label class="block text-xs font-bold text-slate-500 mb-1">月工時 (Work Hours)</label><input type="number" id="indWorkHours" class="w-full p-2 input-modern" placeholder="預設: 240"></div>
+                    <div class="bg-yellow-50 p-3 rounded text-xs text-yellow-800 border border-yellow-200"><i class="fa-solid fa-circle-exclamation mr-1"></i> 設定此處將會「覆蓋」全域預設值。</div>
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">底薪</label><input type="number" id="indBaseSalary" class="w-full p-2 input-modern" placeholder="預設: 30000"></div>
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">月工時</label><input type="number" id="indWorkHours" class="w-full p-2 input-modern" placeholder="預設: 240"></div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">加班倍率1 (前2hr)</label><input type="number" id="indOtRate1" class="w-full p-2 input-modern" placeholder="預設: 1.34" step="0.01"></div>
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">加班倍率2 (3hr+)</label><input type="number" id="indOtRate2" class="w-full p-2 input-modern" placeholder="預設: 1.67" step="0.01"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">加班倍率1</label><input type="number" id="indOtRate1" class="w-full p-2 input-modern" placeholder="預設: 1.34"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">加班倍率2</label><input type="number" id="indOtRate2" class="w-full p-2 input-modern" placeholder="預設: 1.67"></div>
                     </div>
                     <button onclick="saveIndividualSalary()" class="w-full bg-indigo-600 text-white py-2 rounded font-bold hover:bg-indigo-500 shadow mt-2">儲存個人設定</button>
                 </div>
@@ -456,20 +460,17 @@
         let requests = {};
         let attendance = {};
         let bulletin = { title: "歡迎", content: "...", date: "" };
-        let settings = {}; // 存放全域設定
+        let settings = {}; 
         let currentUserId = null;
         let currentDeduction = 0;
         let currentModalEmpId = null;
         let leaveMode = 'day';
-        
-        // 日曆變數
         let currentCalDate = new Date();
-        let currentEmpCalDate = new Date(); // [NEW] Employee Personal Calendar Date
+        let currentEmpCalDate = new Date(); // Personal Calendar
 
         const DEFAULT_TASKS = ["地政過戶", "貸款", "結案資料整理", "過水電", "用印", "對保", "塗銷"];
         let taskOptions = DEFAULT_TASKS;
 
-        // Device ID
         let myDeviceId = localStorage.getItem('hge_security_did');
         if (!myDeviceId) {
             myDeviceId = 'DID-' + Math.random().toString(36).substr(2, 6).toUpperCase() + '-' + Date.now().toString(36).substr(-4);
@@ -477,7 +478,6 @@
         }
         document.getElementById('myDeviceIdDisplay').innerText = myDeviceId;
 
-        // Clock
         setInterval(() => {
             const now = new Date();
             document.getElementById('liveClock').innerText = now.toLocaleTimeString('zh-TW', {hour12: false});
@@ -510,17 +510,44 @@
             document.getElementById('form-'+tab).classList.remove('hidden-section');
         };
 
-        // DB Listener
+        // WebAuthn Utilities
+        const bufferDecode = (value) => Uint8Array.from(atob(value), c => c.charCodeAt(0));
+        const bufferEncode = (value) => btoa(String.fromCharCode.apply(null, new Uint8Array(value))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+
+        // 1. 註冊 (綁定)
+        window.registerWebAuthn = async () => {
+            if (!currentUserId) return;
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost') return Swal.fire('安全限制', '生物辨識僅支援 HTTPS 或 Localhost 環境', 'error');
+            try {
+                const publicKey = { challenge: new Uint8Array(32), rp: { name: "HomeGo HR System" }, user: { id: Uint8Array.from(currentUserId, c => c.charCodeAt(0)), name: employees[currentUserId].name, displayName: employees[currentUserId].name }, pubKeyCredParams: [{ type: "public-key", alg: -7 }] };
+                const credential = await navigator.credentials.create({ publicKey });
+                const credentialId = bufferEncode(credential.rawId);
+                await update(ref(db, `employees/${currentUserId}`), { webAuthnId: credentialId });
+                Swal.fire('綁定成功', '您現在可以使用生物辨識登入', 'success');
+            } catch (err) { console.error(err); Swal.fire('綁定失敗', err.message, 'error'); }
+        };
+
+        // 2. 登入
+        window.handleBiometricLogin = async () => {
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost') return Swal.fire('安全限制', '生物辨識僅支援 HTTPS 或 Localhost 環境', 'error');
+            try {
+                const publicKey = { challenge: new Uint8Array(32) };
+                const credential = await navigator.credentials.get({ publicKey });
+                const credentialId = bufferEncode(credential.rawId);
+                const emp = Object.values(employees).find(e => e.webAuthnId === credentialId);
+                if (emp) { Swal.fire({ title: `歡迎回來, ${emp.name}`, icon: 'success', timer: 1500, showConfirmButton: false }); loadEmployeeDashboard(emp.id); } else { Swal.fire('驗證失敗', '此裝置尚未綁定任何員工', 'error'); }
+            } catch (err) { console.error(err); }
+        };
+
         onValue(ref(db), (snapshot) => {
             const data = snapshot.val() || {};
             employees = data.employees || {};
             requests = data.requests || {};
             attendance = data.attendance || {};
             bulletin = data.bulletin || { title: "尚無公告", content: "", date: "" };
-            settings = data.settings || {}; // 讀取設定
+            settings = data.settings || {}; 
             taskOptions = data.settings?.taskTypes || DEFAULT_TASKS;
 
-            // 填充設定欄位
             if(settings.salary) {
                 document.getElementById('settingBaseSalary').value = settings.salary.baseSalary || 30000;
                 document.getElementById('settingWorkHours').value = settings.salary.workHours || 240;
@@ -530,398 +557,196 @@
                 document.getElementById('settingLatePenalty').value = settings.salary.latePenalty || 0;
             }
 
-            renderLogForm(); checkBirthdayEvents(); updateEmpSelect(); renderBulletin(); renderActivityFeed();
-            if (currentUserId) {
-                renderEmployeeStats(employees[currentUserId]);
-                window.renderEmployeePersonalCalendar(); // Update personal calendar
+            renderLogForm(); 
+            
+            // Birthday Automation
+            const today = new Date();
+            const todayStr = (today.getMonth()+1).toString().padStart(2,'0') + '-' + today.getDate().toString().padStart(2,'0');
+            const todayFullDate = today.toLocaleDateString();
+            let bdayNames = [];
+            Object.values(employees).forEach(emp => { if(emp.birthday && emp.birthday.slice(5) === todayStr) bdayNames.push(emp.name); });
+            if (bdayNames.length > 0 && bulletin.date !== todayFullDate) {
+                const newTitle = "🎂 生日快樂！";
+                const newContent = `今天是 ${bdayNames.join(' & ')} 的生日！\n祝福工作順利，身體健康！🎉\n(系統自動發布)`;
+                set(ref(db, 'bulletin'), { title: newTitle, content: newContent, date: todayFullDate });
             }
+
+            updateEmpSelect(); renderBulletin(); renderActivityFeed();
+            if (currentUserId) { renderEmployeeStats(employees[currentUserId]); window.renderEmployeePersonalCalendar(); }
             renderAdminTable(); window.renderApprovalQueue(); renderAttendanceLog(); window.renderMonthCalendar();
             document.getElementById('empSelect').disabled = false;
         });
 
-        // [NEW] Personal Calendar Logic
-        window.changeEmpMonth = (delta) => {
-            currentEmpCalDate.setMonth(currentEmpCalDate.getMonth() + delta);
-            window.renderEmployeePersonalCalendar();
-        };
-
-        window.renderEmployeePersonalCalendar = () => {
-            const grid = document.getElementById('empCalendarGrid');
-            const title = document.getElementById('empCalTitle');
-            if(!grid || !title || !currentUserId) return;
-
-            grid.innerHTML = '';
-            const year = currentEmpCalDate.getFullYear();
-            const month = currentEmpCalDate.getMonth();
-            title.innerText = `${year}年 ${month+1}月`;
-
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            for(let i=0; i<firstDay; i++) grid.innerHTML += `<div class="calendar-cell bg-slate-50"></div>`;
-
-            for(let d=1; d<=daysInMonth; d++) {
-                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const isToday = (dateStr === todayStr);
-                let evHtml = '';
-
-                // Attendance
-                const atts = Object.values(attendance).filter(a => {
-                    const aDate = new Date(a.timestamp); 
-                    return a.empId === currentUserId && aDate.getFullYear()===year && aDate.getMonth()===month && aDate.getDate()===d;
-                });
-
-                atts.forEach(a => {
-                    const isLate = a.status === '遲到';
-                    const color = isLate ? 'text-red-600 bg-red-50 border-red-200' : 'text-blue-600 bg-blue-50 border-blue-200';
-                    const timeOnly = a.timeStr.split(':')[0] + ':' + a.timeStr.split(':')[1];
-                    evHtml += `<div class="${color} text-[9px] px-1 rounded mt-1 border truncate">
-                                ${a.type} <strong>${timeOnly}</strong>
-                               </div>`;
-                });
-
-                // Requests
-                const reqs = Object.values(requests).filter(r => r.empId === currentUserId && r.status === 'approved' && r.date === dateStr);
-                reqs.forEach(r => {
-                    evHtml += `<div class="text-slate-500 bg-slate-100 border border-slate-200 text-[9px] px-1 rounded mt-1 truncate">
-                                [${r.category==='car'?'車':r.type}]
-                               </div>`;
-                });
-
-                grid.innerHTML += `
-                    <div class="calendar-cell ${isToday?'cal-today':''}">
-                        <div class="text-right font-bold text-xs text-slate-600">${d}</div>
-                        <div class="overflow-y-auto max-h-[70px] custom-scrollbar">${evHtml}</div>
-                    </div>`;
-            }
-        };
-
-        // [Admin] Calendar Logic
-        window.changeMonth = (delta) => {
-            currentCalDate.setMonth(currentCalDate.getMonth() + delta);
-            window.renderMonthCalendar();
-        };
-
-        window.renderMonthCalendar = () => {
-            const grid = document.getElementById('calendarGrid');
-            const title = document.getElementById('calendarTitle');
-            if(!grid || !title) return;
+        // [New] Strict Device Binding Logic
+        window.updateEmpSelect = () => { 
+            const select = document.getElementById('empSelect');
+            const container = document.getElementById('userSelectContainer');
+            const lockedMsg = document.getElementById('deviceLockedMsg');
+            const lockedName = document.getElementById('lockedUserName');
             
-            grid.innerHTML = '';
-            const year = currentCalDate.getFullYear();
-            const month = currentCalDate.getMonth();
-            title.innerText = `${year}年 ${month+1}月`;
+            select.innerHTML = '<option value="">-- 請選擇您的姓名 (首次需綁定) --</option>'; 
+            
+            let boundUser = null;
+            Object.values(employees).forEach(emp => {
+                if (emp.devices && emp.devices.includes(myDeviceId)) boundUser = emp;
+            });
 
-            const firstDay = new Date(year, month, 1).getDay(); // 0 is Sunday
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            // Empty cells
-            for(let i=0; i<firstDay; i++) grid.innerHTML += `<div class="calendar-cell bg-slate-50"></div>`;
-
-            // Days Loop
-            for(let d=1; d<=daysInMonth; d++) {
-                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const isToday = (dateStr === todayStr);
-                const isPast = (new Date(dateStr) < new Date().setHours(0,0,0,0));
+            if (boundUser) {
+                // If device is bound, HIDE the select box and show LOCK message
+                container.classList.add('hidden');
+                lockedMsg.classList.remove('hidden');
+                lockedName.innerText = boundUser.name;
                 
-                let evHtml = '';
-
-                // 1. [Attendance] Past records
-                const atts = Object.values(attendance).filter(a => {
-                    const aDate = new Date(a.timestamp); 
-                    return aDate.getFullYear()===year && aDate.getMonth()===month && aDate.getDate()===d;
-                });
-
-                atts.forEach(a => {
-                    const isLate = a.status === '遲到';
-                    const colorClass = isLate ? 'text-red-600 bg-red-50 border-red-200' : 'text-blue-600 bg-blue-50 border-blue-200';
-                    const timeOnly = a.timeStr.split(':')[0] + ':' + a.timeStr.split(':')[1];
-                    
-                    evHtml += `<div class="${colorClass} text-[10px] px-1 rounded mt-1 border truncate">
-                                <strong>${timeOnly}</strong> ${a.empName} <span class="opacity-75">(${a.status})</span>
-                               </div>`;
-                });
-
-                // 2. [Requests] Future/Planned
-                const reqs = Object.values(requests).filter(r => r.status === 'approved' && r.date === dateStr);
-                reqs.forEach(r => {
-                    evHtml += `<div class="text-slate-500 bg-slate-100 border border-slate-200 text-[10px] px-1 rounded mt-1 truncate">
-                                [${r.category==='car'?'車':r.type}] ${r.empName}
-                               </div>`;
-                });
-
-                grid.innerHTML += `
-                    <div class="calendar-cell ${isToday?'cal-today':''} ${isPast?'cal-past':''}">
-                        <div class="text-right font-bold text-xs ${[0,6].includes(new Date(dateStr).getDay())?'text-red-400':'text-slate-600'}">${d}</div>
-                        <div class="overflow-y-auto max-h-[70px] custom-scrollbar">${evHtml}</div>
-                    </div>`;
-            }
-        };
-
-        // [NEW] CSV Export
-        window.exportAttendance = () => {
-            const rows = [['姓名', '類型', '日期', '時間', '狀態']];
-            Object.values(attendance).sort((a,b)=>b.timestamp-a.timestamp).forEach(a => {
-                rows.push([a.empName, a.type, a.dateStr, a.timeStr, a.status]);
-            });
-            downloadCSV(rows, '打卡紀錄.csv');
-        };
-
-        window.exportLeaveRequests = () => {
-            const rows = [['姓名', '類別', '假別/地點', '日期', '天數/時間', '事由', '狀態']];
-            Object.values(requests).forEach(r => {
-                rows.push([r.empName, r.category==='car'?'用車':'請假', r.category==='car'?r.location:r.type, r.date, r.days, r.reason, r.status]);
-            });
-            downloadCSV(rows, '請假明細.csv');
-        };
-
-        function downloadCSV(rows, filename) {
-            let csvContent = "\uFEFF"; // BOM for Excel
-            rows.forEach(row => { csvContent += row.join(",") + "\n"; });
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", filename);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-        }
-
-        // [NEW] Individual Salary Settings
-        window.openSalaryModal = (empId) => {
-            const emp = employees[empId];
-            if(!emp) return;
-            document.getElementById('salaryEmpId').value = empId;
-            document.getElementById('salaryEmpName').innerText = emp.name;
-            const s = emp.salarySettings || {};
-            document.getElementById('indBaseSalary').value = s.baseSalary || '';
-            document.getElementById('indWorkHours').value = s.workHours || '';
-            document.getElementById('indOtRate1').value = s.otRate1 || '';
-            document.getElementById('indOtRate2').value = s.otRate2 || '';
-            document.getElementById('salaryModal').style.display = 'flex';
-        };
-        window.closeSalaryModal = () => document.getElementById('salaryModal').style.display = 'none';
-        
-        window.saveIndividualSalary = () => {
-            const id = document.getElementById('salaryEmpId').value;
-            const settings = {
-                baseSalary: document.getElementById('indBaseSalary').value,
-                workHours: document.getElementById('indWorkHours').value,
-                otRate1: document.getElementById('indOtRate1').value,
-                otRate2: document.getElementById('indOtRate2').value
-            };
-            update(ref(db, `employees/${id}/salarySettings`), settings).then(() => {
-                Swal.fire('成功', '個人薪資設定已儲存', 'success'); closeSalaryModal();
-            });
-        };
-
-        // Helper: Get Config (Individual > Global > Default)
-        function getSalaryConfig(empId) {
-            const emp = employees[empId] || {};
-            const ind = emp.salarySettings || {};
-            const glo = settings.salary || {};
-            return {
-                base: parseInt(ind.baseSalary || glo.baseSalary || 30000),
-                hours: parseInt(ind.workHours || glo.workHours || 240),
-                r1: parseFloat(ind.otRate1 || glo.otRate1 || 1.34),
-                r2: parseFloat(ind.otRate2 || glo.otRate2 || 1.67),
-                latePen: parseInt(glo.latePenalty || 0) // Late penalty usually global
-            };
-        }
-
-        // UPDATED Calc Logic
-        window.calculateOvertime = () => {
-            // Priority: Input Value -> Employee Config -> Global Config
-            // For dashboard demo, we prioritize user input slider/box, but use config for RATES
-            if(!currentUserId) return;
-            const config = getSalaryConfig(currentUserId);
-            
-            // Allow manual override in dashboard for simulation
-            const inputSalary = parseInt(document.getElementById('monthlySalary').value);
-            const base = inputSalary || config.base; // Use input if available
-            
-            const hourly = Math.round(base / config.hours);
-            const h1 = parseFloat(document.getElementById('calcHours1').value);
-            const h2 = parseFloat(document.getElementById('calcHours2').value);
-            const ot = Math.round((h1 * hourly * config.r1) + (h2 * hourly * config.r2));
-            
-            document.getElementById('calcHours1Val').innerText = h1;
-            document.getElementById('calcHours2Val').innerText = h2;
-            document.getElementById('calcOtTotal').innerText = ot.toLocaleString();
-            document.getElementById('calcDeduction').innerText = currentDeduction.toLocaleString();
-            document.getElementById('calcFinalTotal').innerText = (base + ot - currentDeduction).toLocaleString();
-        };
-
-        window.updateImpactInfo = () => {
-            if(!currentUserId) return;
-            const type = document.getElementById('leaveType').value;
-            const days = parseFloat(document.getElementById('leaveDays').value) || 0;
-            const config = getSalaryConfig(currentUserId);
-            const inputSalary = parseInt(document.getElementById('monthlySalary').value);
-            
-            const hourly = Math.round((inputSalary || config.base) / config.hours);
-            const daily = hourly * 8;
-            const card = document.getElementById('impactCard');
-            let ded = 0;
-
-            card.classList.remove('impact-full','impact-half','impact-none');
-            if(['特休','補休','婚假'].includes(type)) {
-                card.classList.add('impact-full'); document.getElementById('impactTitle').innerText="全薪"; document.getElementById('impactDesc').innerText="工資照給";
-            } else if(type==='病假') {
-                card.classList.add('impact-half'); document.getElementById('impactTitle').innerText="半薪"; document.getElementById('impactDesc').innerText="扣除半薪";
-                ded = Math.round(daily * days * 0.5);
+                // Pre-set global var but wait for explicit click to enter
+                // (Optional: Auto-enter if you prefer, but button is safer for UX)
+                // document.getElementById('empSelect').value = boundUser.id; 
             } else {
-                card.classList.add('impact-none'); document.getElementById('impactTitle').innerText="無薪";
-                if(type==='遲到' && config.latePen > 0) {
-                    // Simulating minute deduction requires minute input, defaulting to ratio here for safety
-                    document.getElementById('impactDesc').innerText="依設定扣款"; ded = Math.round(daily * days);
+                // Not bound: Show list of UNBOUND employees (or all, but warn)
+                container.classList.remove('hidden');
+                lockedMsg.classList.add('hidden');
+                
+                Object.values(employees).forEach(emp => {
+                    // Optional: Filter out employees who already maxed out their devices?
+                    // For now, list everyone, check limit on click
+                    select.innerHTML += `<option value="${emp.id}">${emp.name}</option>`;
+                });
+            }
+        };
+
+        window.tryBindAndLogin = () => {
+            const id = document.getElementById('empSelect').value;
+            if (!id) return;
+            const emp = employees[id];
+            const currentDevices = emp.devices || [];
+
+            if (currentDevices.includes(myDeviceId)) { loadEmployeeDashboard(id); return; }
+            
+            // Check limits
+            if (currentDevices.length >= 3) {
+                Swal.fire({ icon: 'error', title: '綁定失敗', text: '您的帳號已綁定 3 台裝置 (上限)。請聯繫管理員解綁。' });
+                document.getElementById('empSelect').value = ""; return;
+            }
+
+            // Strong Warning
+            Swal.fire({
+                title: '🔒 裝置綁定警告',
+                html: `為了防止代打卡，綁定後此裝置將<b>鎖定為 ${emp.name} 專用</b>。<br>您將無法在此裝置登入其他帳號。<br><br>確定要綁定嗎？`,
+                icon: 'warning', 
+                showCancelButton: true, 
+                confirmButtonText: '確認綁定並登入',
+                confirmButtonColor: '#d33',
+                cancelButtonText: '取消'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const newDevices = [...currentDevices, myDeviceId];
+                    update(ref(db, `employees/${id}`), { devices: newDevices }).then(() => {
+                        Swal.fire('綁定成功', '裝置已鎖定', 'success'); loadEmployeeDashboard(id);
+                    });
+                } else { document.getElementById('empSelect').value = ""; }
+            });
+        };
+
+        window.loadEmployeeDashboard = (fid) => {
+            // Support Loading by ID (from Lock Screen) or Select
+            let targetId = fid;
+            if (!targetId) {
+                // Check if locked
+                const lockedName = document.getElementById('lockedUserName').innerText;
+                if(lockedName !== '--') {
+                    // Find ID by name is risky, better find by device ID again
+                    Object.values(employees).forEach(emp => {
+                        if (emp.devices && emp.devices.includes(myDeviceId)) targetId = emp.id;
+                    });
                 } else {
-                    document.getElementById('impactDesc').innerText="依工時比例扣除"; ded = Math.round(daily * days);
+                    targetId = document.getElementById('empSelect').value;
                 }
             }
-            document.getElementById('impactAmount').innerText = ded.toLocaleString();
-            currentDeduction = ded; window.calculateOvertime();
+
+            if(targetId) { 
+                currentUserId = targetId;
+                document.getElementById('loginSection').classList.add('hidden-section'); 
+                document.getElementById('employeeView').classList.remove('hidden-section'); 
+                renderEmployeeStats(employees[currentUserId]); 
+                window.renderEmployeePersonalCalendar(); 
+            }
         };
 
-        // Standard Functions
+        // Personal Calendar Logic
+        window.changeEmpMonth = (delta) => { currentEmpCalDate.setMonth(currentEmpCalDate.getMonth() + delta); window.renderEmployeePersonalCalendar(); };
+        window.renderEmployeePersonalCalendar = () => {
+            const grid = document.getElementById('empCalendarGrid'); const title = document.getElementById('empCalTitle'); if(!grid || !title || !currentUserId) return;
+            grid.innerHTML = ''; const year = currentEmpCalDate.getFullYear(); const month = currentEmpCalDate.getMonth(); title.innerText = `${year}年 ${month+1}月`;
+            const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate(); const todayStr = new Date().toISOString().split('T')[0];
+            for(let i=0; i<firstDay; i++) grid.innerHTML += `<div class="calendar-cell bg-slate-50"></div>`;
+            for(let d=1; d<=daysInMonth; d++) {
+                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; const isToday = (dateStr === todayStr); let evHtml = '';
+                const atts = Object.values(attendance).filter(a => { const aDate = new Date(a.timestamp); return a.empId === currentUserId && aDate.getFullYear()===year && aDate.getMonth()===month && aDate.getDate()===d; });
+                atts.forEach(a => { const isLate = a.status === '遲到'; const color = isLate ? 'text-red-600 bg-red-50 border-red-200' : 'text-blue-600 bg-blue-50 border-blue-200'; const timeOnly = a.timeStr.split(':')[0] + ':' + a.timeStr.split(':')[1]; evHtml += `<div class="${color} text-[9px] px-1 rounded mt-1 border truncate">${a.type} <strong>${timeOnly}</strong></div>`; });
+                const reqs = Object.values(requests).filter(r => r.empId === currentUserId && r.status === 'approved' && r.date === dateStr);
+                reqs.forEach(r => { evHtml += `<div class="text-slate-500 bg-slate-100 border border-slate-200 text-[9px] px-1 rounded mt-1 truncate">[${r.category==='car'?'車':r.type}]</div>`; });
+                grid.innerHTML += `<div class="calendar-cell ${isToday?'cal-today':''}"><div class="text-right font-bold text-xs text-slate-600">${d}</div><div class="overflow-y-auto max-h-[70px] custom-scrollbar">${evHtml}</div></div>`;
+            }
+        };
+
+        // [Admin] Calendar
+        window.changeMonth = (delta) => { currentCalDate.setMonth(currentCalDate.getMonth() + delta); window.renderMonthCalendar(); };
+        window.renderMonthCalendar = () => {
+            const grid = document.getElementById('calendarGrid'); const title = document.getElementById('calendarTitle'); if(!grid || !title) return;
+            grid.innerHTML = ''; const year = currentCalDate.getFullYear(); const month = currentCalDate.getMonth(); title.innerText = `${year}年 ${month+1}月`;
+            const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate(); const todayStr = new Date().toISOString().split('T')[0];
+            for(let i=0; i<firstDay; i++) grid.innerHTML += `<div class="calendar-cell bg-slate-50"></div>`;
+            for(let d=1; d<=daysInMonth; d++) {
+                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; const isToday = (dateStr === todayStr); const isPast = (new Date(dateStr) < new Date().setHours(0,0,0,0)); let evHtml = '';
+                const atts = Object.values(attendance).filter(a => { const aDate = new Date(a.timestamp); return aDate.getFullYear()===year && aDate.getMonth()===month && aDate.getDate()===d; });
+                atts.forEach(a => { const isLate = a.status === '遲到'; const colorClass = isLate ? 'text-red-600 bg-red-50 border-red-200' : 'text-blue-600 bg-blue-50 border-blue-200'; const timeOnly = a.timeStr.split(':')[0] + ':' + a.timeStr.split(':')[1]; evHtml += `<div class="${colorClass} text-[10px] px-1 rounded mt-1 border truncate"><strong>${timeOnly}</strong> ${a.empName} <span class="opacity-75">(${a.status})</span></div>`; });
+                const reqs = Object.values(requests).filter(r => r.status === 'approved' && r.date === dateStr);
+                reqs.forEach(r => { evHtml += `<div class="text-slate-500 bg-slate-100 border border-slate-200 text-[10px] px-1 rounded mt-1 truncate">[${r.category==='car'?'車':r.type}] ${r.empName}</div>`; });
+                grid.innerHTML += `<div class="calendar-cell ${isToday?'cal-today':''} ${isPast?'cal-past':''}"><div class="text-right font-bold text-xs ${[0,6].includes(new Date(dateStr).getDay())?'text-red-400':'text-slate-600'}">${d}</div><div class="overflow-y-auto max-h-[70px] custom-scrollbar">${evHtml}</div></div>`;
+            }
+        };
+
+        // Export & Salary functions (Same as previous, omitted for brevity but included in functionality)
+        window.exportAttendance = () => { const rows = [['姓名', '類型', '日期', '時間', '狀態']]; Object.values(attendance).sort((a,b)=>b.timestamp-a.timestamp).forEach(a => { rows.push([a.empName, a.type, a.dateStr, a.timeStr, a.status]); }); downloadCSV(rows, '打卡紀錄.csv'); };
+        window.exportLeaveRequests = () => { const rows = [['姓名', '類別', '假別/地點', '日期', '天數/時間', '事由', '狀態']]; Object.values(requests).forEach(r => { rows.push([r.empName, r.category==='car'?'用車':'請假', r.category==='car'?r.location:r.type, r.date, r.days, r.reason, r.status]); }); downloadCSV(rows, '請假明細.csv'); };
+        function downloadCSV(rows, filename) { let csvContent = "\uFEFF"; rows.forEach(row => { csvContent += row.join(",") + "\n"; }); const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement("a"); if (link.download !== undefined) { const url = URL.createObjectURL(blob); link.setAttribute("href", url); link.setAttribute("download", filename); link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link); } }
+        
+        window.openSalaryModal = (empId) => { const emp = employees[empId]; if(!emp) return; document.getElementById('salaryEmpId').value = empId; const s = emp.salarySettings || {}; document.getElementById('indBaseSalary').value = s.baseSalary || ''; document.getElementById('indWorkHours').value = s.workHours || ''; document.getElementById('indOtRate1').value = s.otRate1 || ''; document.getElementById('indOtRate2').value = s.otRate2 || ''; document.getElementById('salaryModal').style.display = 'flex'; };
+        window.closeSalaryModal = () => document.getElementById('salaryModal').style.display = 'none';
+        window.saveIndividualSalary = () => { const id = document.getElementById('salaryEmpId').value; const settings = { baseSalary: document.getElementById('indBaseSalary').value, workHours: document.getElementById('indWorkHours').value, otRate1: document.getElementById('indOtRate1').value, otRate2: document.getElementById('indOtRate2').value }; update(ref(db, `employees/${id}/salarySettings`), settings).then(() => { Swal.fire('成功', '個人薪資設定已儲存', 'success'); closeSalaryModal(); }); };
+        function getSalaryConfig(empId) { const emp = employees[empId] || {}; const ind = emp.salarySettings || {}; const glo = settings.salary || {}; return { base: parseInt(ind.baseSalary || glo.baseSalary || 30000), hours: parseInt(ind.workHours || glo.workHours || 240), r1: parseFloat(ind.otRate1 || glo.otRate1 || 1.34), r2: parseFloat(ind.otRate2 || glo.otRate2 || 1.67), latePen: parseInt(glo.latePenalty || 0) }; }
+        window.calculateOvertime = () => { if(!currentUserId) return; const config = getSalaryConfig(currentUserId); const inputSalary = parseInt(document.getElementById('monthlySalary').value); const base = inputSalary || config.base; const hourly = Math.round(base / config.hours); const h1 = parseFloat(document.getElementById('calcHours1').value); const h2 = parseFloat(document.getElementById('calcHours2').value); const ot = Math.round((h1 * hourly * config.r1) + (h2 * hourly * config.r2)); document.getElementById('calcHours1Val').innerText = h1; document.getElementById('calcHours2Val').innerText = h2; document.getElementById('calcOtTotal').innerText = ot.toLocaleString(); document.getElementById('calcDeduction').innerText = currentDeduction.toLocaleString(); document.getElementById('calcFinalTotal').innerText = (base + ot - currentDeduction).toLocaleString(); };
+        window.updateImpactInfo = () => { if(!currentUserId) return; const type = document.getElementById('leaveType').value; const days = parseFloat(document.getElementById('leaveDays').value) || 0; const config = getSalaryConfig(currentUserId); const inputSalary = parseInt(document.getElementById('monthlySalary').value); const hourly = Math.round((inputSalary || config.base) / config.hours); const daily = hourly * 8; const card = document.getElementById('impactCard'); let ded = 0; card.classList.remove('impact-full','impact-half','impact-none'); if(['特休','補休','婚假'].includes(type)) { card.classList.add('impact-full'); document.getElementById('impactTitle').innerText="全薪"; document.getElementById('impactDesc').innerText="工資照給"; } else if(type==='病假') { card.classList.add('impact-half'); document.getElementById('impactTitle').innerText="半薪"; document.getElementById('impactDesc').innerText="扣除半薪"; ded = Math.round(daily * days * 0.5); } else { card.classList.add('impact-none'); document.getElementById('impactTitle').innerText="無薪"; if(type==='遲到' && config.latePen > 0) { document.getElementById('impactDesc').innerText="依設定扣款"; ded = Math.round(daily * days); } else { document.getElementById('impactDesc').innerText="依工時比例扣除"; ded = Math.round(daily * days); } } document.getElementById('impactAmount').innerText = ded.toLocaleString(); currentDeduction = ded; window.calculateOvertime(); };
+
         function renderEmployeeStats(emp) {
             if(!emp) return;
-            // Update Name
             document.getElementById('dashboardName').innerText = emp.name;
-            
-            // Update Avatar
-            const avatarImg = document.getElementById('dashboardAvatarImg');
-            const avatarPlace = document.getElementById('dashboardAvatarPlaceholder');
-            if (emp.avatar) {
-                avatarImg.src = emp.avatar;
-                avatarImg.classList.remove('hidden');
-                avatarPlace.classList.add('hidden');
-            } else {
-                avatarImg.classList.add('hidden');
-                avatarPlace.classList.remove('hidden');
-            }
-
-            const calc = calculateLeave(emp.joinDate);
-            document.getElementById('dashboardRemaining').innerText = (calc.days - (emp.stats?.annual||0)) + " 天";
-            document.getElementById('dashboardTotal').innerText = calc.days + " 天";
-            document.getElementById('dashboardJoinDate').innerText = emp.joinDate || "未設定";
-            document.getElementById('dashboardTenure').innerText = calculateTenure(emp.joinDate);
-            
-            const tbody = document.getElementById('myRequestsTable');
-            const myReqs = Object.values(requests).filter(r => r.empId === emp.id).sort((a,b) => b.timestamp - a.timestamp).slice(0, 5);
-            tbody.innerHTML = myReqs.length ? myReqs.map(r => `<tr class="border-b"><td class="p-2 text-xs text-slate-500">${r.date.slice(5)}</td><td class="p-2 font-bold text-slate-700">${r.category==='car'?'用車':r.type}</td><td class="p-2 text-right"><span class="px-2 py-0.5 rounded text-[10px] ${r.status==='approved'?'bg-green-100 text-green-700':'bg-orange-100 text-orange-700'}">${r.status}</span></td></tr>`).join('') : '<tr><td colspan="3" class="p-4 text-center text-slate-400 text-xs">無紀錄</td></tr>';
-            
-            // Sync Salary Input with stored or default
-            const conf = getSalaryConfig(emp.id);
-            document.getElementById('monthlySalary').value = conf.base;
-            document.getElementById('displaySalary').innerText = conf.base.toLocaleString();
-            document.getElementById('salarySlider').value = conf.base;
+            const avatarImg = document.getElementById('dashboardAvatarImg'); const avatarPlace = document.getElementById('dashboardAvatarPlaceholder');
+            if (emp.avatar) { avatarImg.src = emp.avatar; avatarImg.classList.remove('hidden'); avatarPlace.classList.add('hidden'); } else { avatarImg.classList.add('hidden'); avatarPlace.classList.remove('hidden'); }
+            const calc = calculateLeave(emp.joinDate); document.getElementById('dashboardRemaining').innerText = (calc.days - (emp.stats?.annual||0)) + " 天"; document.getElementById('dashboardTotal').innerText = calc.days + " 天"; document.getElementById('dashboardJoinDate').innerText = emp.joinDate || "未設定"; document.getElementById('dashboardTenure').innerText = calculateTenure(emp.joinDate);
+            const tbody = document.getElementById('myRequestsTable'); const myReqs = Object.values(requests).filter(r => r.empId === emp.id).sort((a,b) => b.timestamp - a.timestamp).slice(0, 5); tbody.innerHTML = myReqs.length ? myReqs.map(r => `<tr class="border-b"><td class="p-2 text-xs text-slate-500">${r.date.slice(5)}</td><td class="p-2 font-bold text-slate-700">${r.category==='car'?'用車':r.type}</td><td class="p-2 text-right"><span class="px-2 py-0.5 rounded text-[10px] ${r.status==='approved'?'bg-green-100 text-green-700':'bg-orange-100 text-orange-700'}">${r.status}</span></td></tr>`).join('') : '<tr><td colspan="3" class="p-4 text-center text-slate-400 text-xs">無紀錄</td></tr>';
+            const conf = getSalaryConfig(emp.id); document.getElementById('monthlySalary').value = conf.base; document.getElementById('displaySalary').innerText = conf.base.toLocaleString(); document.getElementById('salarySlider').value = conf.base;
         }
-
-        // Avatar Upload
         window.triggerAvatarUpload = () => document.getElementById('avatarInput').click();
-        window.handleAvatarChange = (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const MAX_WIDTH = 300;
-                    const scaleSize = MAX_WIDTH / Math.max(img.width, img.height);
-                    canvas.width = img.width * scaleSize;
-                    canvas.height = img.height * scaleSize;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    update(ref(db, `employees/${currentUserId}`), { avatar: dataUrl })
-                        .then(() => Swal.fire('成功', '大頭照已更新', 'success'));
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        };
-
-        // Updated Admin Table
-        function renderAdminTable() {
-            const tbody = document.getElementById('adminTableBody');
-            tbody.innerHTML = '';
-            Object.values(employees).forEach(emp => {
-                const devs = (emp.devices||[]).map((d,i)=>`<span class="device-badge cursor-pointer hover:bg-red-100" onclick="unbindDevice('${emp.id}',${i})">📱 ${d.substr(0,4)}</span>`).join(' ');
-                const calc = calculateLeave(emp.joinDate);
-                const avatarHTML = emp.avatar ? `<img src="${emp.avatar}" class="w-8 h-8 rounded-full border border-slate-200 object-cover mr-2 inline-block">` : `<div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs mr-2 inline-block">👤</div>`;
-                tbody.innerHTML += `
-                    <tr class="border-b text-sm">
-                        <td class="p-3 font-bold text-slate-800 flex items-center">${avatarHTML} ${emp.name}</td>
-                        <td class="p-3"><div class="text-xs text-slate-500">${emp.joinDate||'--'}</div><div class="text-xs text-slate-400">${calculateTenure(emp.joinDate)}</div></td>
-                        <td class="p-3">剩:${calc.days-(emp.stats?.annual||0)}</td>
-                        <td class="p-3">${devs || '未綁定'}</td>
-                        <td class="p-3 text-right">
-                            <button onclick="openSalaryModal('${emp.id}')" class="text-indigo-600 mr-2" title="薪資設定"><i class="fa-solid fa-sack-dollar"></i></button>
-                            <button onclick="openHistory('${emp.id}')" class="text-blue-600"><i class="fa-solid fa-pen-to-square"></i></button>
-                        </td>
-                    </tr>`;
-            });
-        }
-
-        // ... Existing Helpers (Leave, Time, Punch, etc.) same as before ...
-        window.saveSalarySettings = () => {
-            const s = {
-                baseSalary: document.getElementById('settingBaseSalary').value,
-                workHours: document.getElementById('settingWorkHours').value,
-                otRate1: document.getElementById('settingOtRate1').value,
-                otRate2: document.getElementById('settingOtRate2').value,
-                lateBuffer: document.getElementById('settingLateBuffer').value,
-                latePenalty: document.getElementById('settingLatePenalty').value
-            };
-            update(ref(db, 'settings/salary'), s).then(() => Swal.fire('全域設定已儲存', '', 'success'));
-        };
-
-        function calculateLeave(joinDate) {
-            if(!joinDate) return { days: 0, rule: "未設定" };
-            const years = (new Date() - new Date(joinDate)) / (1000*60*60*24*365.25);
-            let d = 0; if(years<0.5) d=0; else if(years<1) d=3; else if(years<2) d=7; else if(years<3) d=10; else if(years<5) d=14; else if(years<10) d=15; else d=Math.min(30, 15+Math.floor(years-10));
-            return { days: d, rule: "週年制" };
-        }
-        function calculateTenure(d) {
-            if(!d) return "--";
-            const m = Math.floor((new Date() - new Date(d)) / (1000*60*60*24*30.44));
-            return m < 12 ? `${m}個月` : `${Math.floor(m/12)}年${m%12}月`;
-        }
-        // ... Other existing functions: handlePunch, handleLogSubmit, etc ...
+        window.handleAvatarChange = (event) => { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { const img = new Image(); img.onload = function() { const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); const MAX_WIDTH = 300; const scaleSize = MAX_WIDTH / Math.max(img.width, img.height); canvas.width = img.width * scaleSize; canvas.height = img.height * scaleSize; ctx.drawImage(img, 0, 0, canvas.width, canvas.height); const dataUrl = canvas.toDataURL('image/jpeg', 0.7); update(ref(db, `employees/${currentUserId}`), { avatar: dataUrl }).then(() => Swal.fire('成功', '大頭照已更新', 'success')); }; img.src = e.target.result; }; reader.readAsDataURL(file); };
+        function renderAdminTable() { const tbody = document.getElementById('adminTableBody'); tbody.innerHTML = ''; Object.values(employees).forEach(emp => { const devs = (emp.devices||[]).map((d,i)=>`<span class="device-badge cursor-pointer hover:bg-red-100" onclick="unbindDevice('${emp.id}',${i})">📱 ${d.substr(0,4)}</span>`).join(' '); const calc = calculateLeave(emp.joinDate); const avatarHTML = emp.avatar ? `<img src="${emp.avatar}" class="w-8 h-8 rounded-full border border-slate-200 object-cover mr-2 inline-block">` : `<div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs mr-2 inline-block">👤</div>`; tbody.innerHTML += `<tr class="border-b text-sm"><td class="p-3 font-bold text-slate-800 flex items-center">${avatarHTML} ${emp.name}</td><td class="p-3"><div class="text-xs text-slate-500">${emp.joinDate||'--'}</div><div class="text-xs text-slate-400">${calculateTenure(emp.joinDate)}</div></td><td class="p-3">剩:${calc.days-(emp.stats?.annual||0)}</td><td class="p-3">${devs || '未綁定'}</td><td class="p-3 text-right"><button onclick="openSalaryModal('${emp.id}')" class="text-indigo-600 mr-2" title="薪資"><i class="fa-solid fa-sack-dollar"></i></button><button onclick="openHistory('${emp.id}')" class="text-blue-600"><i class="fa-solid fa-pen-to-square"></i></button></td></tr>`; }); }
+        window.saveSalarySettings = () => { const s = { baseSalary: document.getElementById('settingBaseSalary').value, workHours: document.getElementById('settingWorkHours').value, otRate1: document.getElementById('settingOtRate1').value, otRate2: document.getElementById('settingOtRate2').value, lateBuffer: document.getElementById('settingLateBuffer').value, latePenalty: document.getElementById('settingLatePenalty').value }; update(ref(db, 'settings/salary'), s).then(() => Swal.fire('全域設定已儲存', '', 'success')); };
+        function calculateLeave(joinDate) { if(!joinDate) return { days: 0, rule: "未設定" }; const years = (new Date() - new Date(joinDate)) / (1000*60*60*24*365.25); let d = 0; if(years<0.5) d=0; else if(years<1) d=3; else if(years<2) d=7; else if(years<3) d=10; else if(years<5) d=14; else if(years<10) d=15; else d=Math.min(30, 15+Math.floor(years-10)); return { days: d, rule: "週年制" }; }
+        function calculateTenure(d) { if(!d) return "--"; const m = Math.floor((new Date() - new Date(d)) / (1000*60*60*24*30.44)); return m < 12 ? `${m}個月` : `${Math.floor(m/12)}年${m%12}月`; }
         window.handlePunch = (t) => { if(!currentUserId) return; navigator.geolocation.getCurrentPosition(p=>{ push(ref(db,'attendance'),{empId:currentUserId,empName:employees[currentUserId].name,type:t,timestamp:Date.now(),dateStr:new Date().toLocaleDateString(),timeStr:new Date().toLocaleTimeString(),location:`${p.coords.latitude},${p.coords.longitude}`,status:"正常"}); Swal.fire('打卡成功','','success'); }); };
         window.handleLogSubmit = (e) => { e.preventDefault(); Swal.fire('模擬發送','已開啟 LINE','success'); };
         window.renderApprovalQueue = () => { const t=document.getElementById('approvalTableBody'); t.innerHTML=''; Object.entries(requests).filter(([k,v])=>v.status==='pending').forEach(([k,r])=>{ t.innerHTML+=`<tr class="border-b"><td class="p-2">${r.empName}</td><td class="p-2">${r.type}</td><td class="p-2 text-right"><button onclick="processRequest('${k}','approve')" class="text-green-600 mr-2">✔</button><button onclick="processRequest('${k}','reject')" class="text-red-600">✘</button></td></tr>`; }); };
         window.processRequest = (k,s) => update(ref(db,`requests/${k}`),{status:s==='approve'?'approved':'rejected'}).then(()=>window.renderApprovalQueue());
         window.openHistory = (id) => { currentModalEmpId=id; document.getElementById('historyModal').style.display='flex'; };
         window.closeHistory = () => document.getElementById('historyModal').style.display='none';
-        
-        // ... Init ...
-        window.updateEmpSelect = () => { 
-            const s = document.getElementById('empSelect'); s.innerHTML='<option>-- 選擇 --</option>'; 
-            Object.values(employees).forEach(e => s.innerHTML+=`<option value="${e.id}">${e.name}</option>`); 
-        };
-        window.tryBindAndLogin = () => { window.loadEmployeeDashboard(); };
-        window.loadEmployeeDashboard = () => { currentUserId = document.getElementById('empSelect').value; if(currentUserId) { document.getElementById('loginSection').classList.add('hidden-section'); document.getElementById('employeeView').classList.remove('hidden-section'); renderEmployeeStats(employees[currentUserId]); }};
-        // Add Employee Logic
+        window.unbindDevice = (id, idx) => { const nd = [...employees[id].devices]; nd.splice(idx, 1); update(ref(db, `employees/${id}`), { devices: nd }); };
         window.addEmployee = () => { const n=document.getElementById('newAdminName').value; if(n) push(ref(db,'employees'),{name:n,joinDate:document.getElementById('newAdminDate').value,id:Date.now()}); };
         window.checkBirthdayEvents = () => {}; 
-        window.renderBulletin = () => {};
-        window.renderActivityFeed = () => {};
-        window.renderAttendanceLog = () => {
-             const tbody = document.getElementById('attendanceTableBody');
-             tbody.innerHTML = Object.values(attendance).sort((a,b)=>b.timestamp-a.timestamp).slice(0,30).map(l=>`<tr class="border-b"><td class="p-2">${l.empName}</td><td class="p-2 ${l.type==='上班'?'text-blue-600':'text-orange-600'}">${l.type}</td><td class="p-2">${l.dateStr} ${l.timeStr}</td><td class="p-2">${l.status||'正常'}</td><td class="p-2 text-xs text-blue-400">📍</td></tr>`).join('');
-        };
-        window.renderLogForm = () => {}; 
-        
-        document.getElementById('leaveDate').valueAsDate = new Date();
+        window.renderBulletin = () => { document.getElementById('displayBulletinTitle').innerText = bulletin.title; document.getElementById('displayBulletinContent').innerText = bulletin.content; document.getElementById('displayBulletinDate').innerText = bulletin.date; };
+        window.renderActivityFeed = () => { const feed = document.getElementById('activityFeed'); const approved = Object.values(requests).filter(r=>r.status==='approved' && new Date(r.date) >= new Date().setHours(0,0,0,0)).sort((a,b)=>new Date(a.date)-new Date(b.date)); if(approved.length===0) { feed.innerHTML='<div class="p-4 text-center text-xs text-slate-400">目前無動態</div>'; return; } feed.innerHTML = approved.map(r=>`<div class="p-3 border-b text-xs flex justify-between"><span><b>${r.empName}</b>: ${r.category==='car'?'用車':r.type}</span><span class="text-slate-400">${r.date.slice(5)}</span></div>`).join(''); };
+        window.renderAttendanceLog = () => { const tbody = document.getElementById('attendanceTableBody'); tbody.innerHTML = Object.values(attendance).sort((a,b)=>b.timestamp-a.timestamp).slice(0,30).map(l=>`<tr class="border-b"><td class="p-2">${l.empName}</td><td class="p-2 ${l.type==='上班'?'text-blue-600':'text-orange-600'}">${l.type}</td><td class="p-2">${l.dateStr} ${l.timeStr}</td><td class="p-2">${l.status||'正常'}</td><td class="p-2 text-xs text-blue-400">📍</td></tr>`).join(''); };
+        window.renderLogForm = () => { const c = document.getElementById('logEntriesContainer'); if(!c || c.children.length > 1) return; c.innerHTML=''; ["09:00 ~ 10:00", "10:00 ~ 11:00", "11:00 ~ 12:00", "13:30 ~ 14:30", "14:30 ~ 15:30", "15:30 ~ 16:30", "16:30 ~ 17:30", "17:30 ~ 18:30"].forEach(s=>{ let o='<option value="">-- 選擇 --</option>'; taskOptions.forEach(op=>o+=`<option value="${op}">${op}</option>`); c.innerHTML+=`<div class="bg-white p-2 rounded border border-slate-200 flex flex-col md:flex-row gap-2 items-center shadow-sm"><div class="text-xs font-bold text-slate-500 w-full md:w-24 bg-slate-50 p-1.5 rounded text-center">${s}</div><select name="logTask" class="flex-1 p-1.5 text-sm border rounded w-full md:w-auto outline-none focus:border-blue-500">${o}</select><input type="text" name="logDetail" class="flex-1 p-1.5 text-sm border rounded w-full md:w-auto outline-none focus:border-blue-500" placeholder="內容"><input type="hidden" name="logTime" value="${s}"></div>`; }); };
+        window.saveBulletin = () => { set(ref(db, 'bulletin'), { title: document.getElementById('adminBulletinTitle').value, content: document.getElementById('adminBulletinContent').value, date: new Date().toLocaleDateString() }); Swal.fire('公告已更新'); };
+        document.getElementById('leaveDate').valueAsDate = new Date(); document.getElementById('carDate').valueAsDate = new Date(); document.getElementById('logDate').valueAsDate = new Date();
     </script>
 </body>
 </html>
